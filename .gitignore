@@ -41,3 +41,7 @@ desktop.ini
 .idea/
 *.swp
 *.swo
+
+# Local helper scripts
+*.bat
+
