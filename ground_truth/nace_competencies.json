@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TXST Career Readiness Competencies Ground Truth",
+  "source": "Texas State University Career Services (adapted from NACE)",
+  "canonical_url": "https://www.careerservices.txst.edu/students-alumni/resources-services/competencies.html",
+  "version": "2024-2026",
+  "competencies": {
+    "Advocacy & Compassion": {
+      "definition": "Demonstrate the awareness, attitude, knowledge, and skills required to compassionately engage people from different backgrounds. The ability to empathize with others, overcome challenges, and diffuse conflict.",
+      "observable_behaviors": [
+        "Solicit and use feedback from multiple perspectives to make decisions.",
+        "Keep an open mind to new ways of thinking.",
+        "Demonstrate flexibility by adapting to different work environments.",
+        "Maintain awareness to ensure all voices are heard.",
+        "Professionally advocate for oneself and others."
+      ]
+    },
+    "Career & Self-Development": {
+      "definition": "Proactively develop oneself and one's career through continual personal and professional learning, awareness of one's strengths and weaknesses, navigation of career opportunities, and networking to build relationships within and without one's organization.",
+      "observable_behaviors": [
+        "Show an awareness of own strengths and areas for development.",
+        "Assume duties or positions that will help one progress professionally.",
+        "Develop plans and goals for one's future career.",
+        "Establish, maintain, and/or leverage relationships with people who can help one professionally.",
+        "Display curiosity; seek out opportunities to learn."
+      ]
+    },
+    "Communication": {
+      "definition": "Clearly and effectively exchange information, ideas, facts, and perspectives with persons inside and outside of an organization.",
+      "observable_behaviors": [
+        "Understand the importance of and demonstrate verbal, written, and non-verbal/body language abilities.",
+        "Employ active listening, persuasion, and influencing skills.",
+        "Communicate in a clear and organized manner so that others can effectively understand.",
+        "Ask appropriate questions for specific information from supervisors, specialists, and others.",
+        "Promptly inform relevant others when needing guidance with assigned tasks."
+      ]
+    },
+    "Critical Thinking": {
+      "definition": "Identify and respond to needs based upon an understanding of situational context and logical analysis of relevant information.",
+      "observable_behaviors": [
+        "Make decisions and solve problems using sound reasoning and judgment.",
+        "Gather and analyze information from a variety of resources and individuals to fully understand a problem.",
+        "Proactively anticipate needs and prioritize action steps.",
+        "Maintain neutrality when making decisions.",
+        "Multi-task well in a fast-paced environment."
+      ]
+    },
+    "Leadership": {
+      "definition": "Recognize and capitalize on personal and team strengths to achieve organizational goals.",
+      "observable_behaviors": [
+        "Inspire, persuade, and motivate self and others under a shared vision.",
+        "Use innovative thinking to go beyond traditional methods.",
+        "Serve as a role model to others by approaching tasks with confidence and a positive attitude.",
+        "Motivate and inspire others by encouraging them and by building mutual trust.",
+        "Plan, initiate, manage, complete and evaluate projects."
+      ]
+    },
+    "Professionalism": {
+      "definition": "Knowing work environments differ greatly, understand and demonstrate effective work habits, and act in the interest of the larger community and workplace.",
+      "observable_behaviors": [
+        "Act equitably with integrity and accountability to self, others, and organization.",
+        "Maintain a positive personal brand in alignment with organization and personal career values.",
+        "Demonstrate dependability (e.g., report reliably for work or meetings).",
+        "Prioritize and complete tasks to accomplish organizational goals and meet or exceed expectations.",
+        "Take personal responsibility to own and learn from mistakes."
+      ]
+    },
+    "Teamwork": {
+      "definition": "Build and maintain collaborative relationships to work effectively toward common goals, while appreciating diverse viewpoints and shared responsibilities.",
+      "observable_behaviors": [
+        "Listen carefully to others, taking time to understand and ask appropriate questions without interrupting.",
+        "Be accountable for individual and team responsibilities and assignments.",
+        "Exercise the ability to compromise and collaborate with others.",
+        "Build strong, positive working relationships with supervisor and team members/coworkers.",
+        "Employ strengths, knowledge, and talents to complement those of others."
+      ]
+    },
+    "Technology": {
+      "definition": "Understand and leverage technologies ethically to enhance efficiencies, complete tasks, and accomplish goals.",
+      "observable_behaviors": [
+        "Navigate change and be open to learning new technologies.",
+        "Use technology to improve efficiency and productivity of their work.",
+        "Identify appropriate technology for completing specific tasks.",
+        "Manage technology to integrate information to support relevant, effective, and timely decision-making.",
+        "Quickly adapt to new or unfamiliar technologies."
+      ]
+    }
+  }
+}

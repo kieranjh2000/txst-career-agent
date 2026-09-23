@@ -1,0 +1,43 @@
+# Environment variables and credentials (NEVER upload to GitHub)
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.cert
+credentials.json
+client_secret*.json
+
+# Large media & assignment archives (>100MB blocked by GitHub)
+*.mp4
+*.zip
+*.docx
+
+# Python cache & runtime
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+
+# Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+
+# Application Logs (contain user session details)
+logs/
+*.log
+*.jsonl
+
+# OS metadata
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE & Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
