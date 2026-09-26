@@ -511,17 +511,23 @@ if st.session_state.results:
     st.subheader("🎯 Career Competency Analysis")
 
     # Show Diff if this was an update
-    if st.session_state.show_diff and st.session_state.previous_names:
+    if st.session_state.show_diff:
         added = current_names - st.session_state.previous_names
         removed = st.session_state.previous_names - current_names
         if added or removed:
-            st.markdown("#### What changed in this update:")
+            st.markdown("#### 🔄 What changed in this update:")
             if added:
-                st.success(f"➕ **Added:** {', '.join(added)}")
+                st.success(f"➕ **New Competency Added:** {', '.join(added)}")
             if removed:
-                st.warning(f"➖ **Removed:** {', '.join(removed)}")
+                st.warning(f"➖ **Competency Removed:** {', '.join(removed)}")
+        elif not competencies:
+            st.info(
+                "ℹ️ **Update Processed:** We added your clarification, but simply stating 'I had an internship' "
+                "still lacks specific projects, actions, tools, or measurable outcomes. "
+                "Try describing what tasks you personally worked on or what problem you solved!"
+            )
         else:
-            st.info("ℹ️ No change in identified competencies.")
+            st.info("ℹ️ **Update Processed:** No change in identified competencies.")
 
     # Unsupported Case Handling (Rule 2 & Rule 6)
     if not competencies:
@@ -576,7 +582,7 @@ if st.session_state.results:
     # Iterative Refinement & Human Correction (Rule 3)
     # ---------------------------------------------------------------------------
     st.markdown("---")
-    with st.expander("✏️ Add or Clarify Something About This Experience"):
+    with st.expander("✏️ Add or Clarify Something About This Experience", expanded=True):
         st.markdown(
             "If you want to add more details, clarify a project responsibility, or correct an interpretation:"
         )
@@ -586,7 +592,9 @@ if st.session_state.results:
             placeholder="Example: I forgot to mention that I also trained 3 interns on this process and created the documentation.",
         )
         if st.button("Update Analysis", type="secondary"):
-            if update_text.strip():
+            if not update_text.strip():
+                st.warning("Please type what you would like to add or clarify before updating.")
+            else:
                 st.session_state.previous_names = current_names
                 st.session_state.updates_history.append(update_text.strip())
                 updated_narrative = (
@@ -603,4 +611,5 @@ if st.session_state.results:
                         updated_results,
                         st.session_state.updates_history,
                     )
+                    st.toast("Analysis updated!")
                     st.rerun()
