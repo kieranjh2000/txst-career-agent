@@ -32,7 +32,15 @@ API_KEY = os.environ.get("GEMINI_API_KEY")
 if not API_KEY and hasattr(st, "secrets") and "GEMINI_API_KEY" in st.secrets:
     API_KEY = st.secrets["GEMINI_API_KEY"]
 
+# Test Access Control Configuration
+ACCESS_CODE = os.environ.get("APP_ACCESS_CODE")
+if not ACCESS_CODE and hasattr(st, "secrets") and "APP_ACCESS_CODE" in st.secrets:
+    ACCESS_CODE = st.secrets["APP_ACCESS_CODE"]
+if not ACCESS_CODE:
+    ACCESS_CODE = "BOBCATS2026"  # Default test access code for class evaluation
+
 PRIMARY_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.5-flash-lite")
+
 FALLBACK_MODEL = os.environ.get("GEMINI_FALLBACK_MODEL", "gemini-3.6-flash")
 MAX_API_RETRIES = 2
 
@@ -280,8 +288,45 @@ with st.sidebar:
 
 
 # ---------------------------------------------------------------------------
+# Access Control (Restricted Test Environment)
+# ---------------------------------------------------------------------------
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+
+if not st.session_state.authenticated:
+    st.markdown('<div class="main-header">🔒 Restricted Test Environment</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="sub-header">TXST Career Readiness Discovery Agent (Evaluation Build)</div>',
+        unsafe_allow_html=True,
+    )
+    
+    st.info("This application is currently in an authorized testing phase. Please enter the test access code to proceed.")
+    
+    with st.form("access_gate_form"):
+        entered_code = st.text_input("Enter Test Access Code:", type="password", placeholder="Enter code here")
+        submitted = st.form_submit_button("Unlock Agent", type="primary")
+        
+        if submitted:
+            if entered_code.strip() == ACCESS_CODE:
+                st.session_state.authenticated = True
+                st.success("Access granted!")
+                st.rerun()
+            else:
+                st.error("❌ Incorrect access code. Please check with the project author or course instructor.")
+    
+    st.caption("⚠️ **Note:** This access code is a lightweight test gate intended for academic evaluation and course grading, not enterprise security.")
+    st.stop()
+
+
+# ---------------------------------------------------------------------------
 # Main UI Application
 # ---------------------------------------------------------------------------
+with st.sidebar:
+    st.caption("🔒 **Test Session Active**")
+    if st.button("Lock / Exit Session"):
+        st.session_state.authenticated = False
+        st.rerun()
+
 st.markdown('<div class="main-header">TXST Career Readiness Discovery Agent</div>', unsafe_allow_html=True)
 st.markdown(
     '<div class="sub-header">Discover which Career Competencies you developed in your experience, backed by concrete evidence for your resume and interviews.</div>',
@@ -295,6 +340,7 @@ if not effective_api_key:
     st.stop()
 
 client = get_client(effective_api_key)
+
 
 # Initialize Session State
 if "experience_text" not in st.session_state:
