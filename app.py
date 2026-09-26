@@ -73,26 +73,49 @@ st.markdown(
         margin-bottom: 1.5rem;
     }
     .competency-card {
-        background-color: #fdfbf7;
-        border-left: 5px solid #501214;
-        padding: 1rem 1.2rem;
-        border-radius: 4px;
-        margin-bottom: 1rem;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        background-color: #ffffff !important;
+        color: #111827 !important;
+        border-left: 6px solid #501214 !important;
+        padding: 1.2rem !important;
+        border-radius: 6px !important;
+        margin-bottom: 1rem !important;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.2) !important;
+    }
+    .competency-card h3 {
+        color: #501214 !important;
+        font-size: 1.3rem !important;
+        font-weight: 700 !important;
+        margin-top: 0 !important;
+        margin-bottom: 0.5rem !important;
+    }
+    .competency-card p, 
+    .competency-card strong, 
+    .competency-card span, 
+    .competency-card div {
+        color: #1f2937 !important;
     }
     .quote-box {
-        background-color: #f4f4f4;
-        border-left: 3px solid #6c757d;
-        padding: 0.5rem 0.8rem;
-        margin: 0.4rem 0;
-        font-style: italic;
+        background-color: #f3f4f6 !important;
+        color: #111827 !important;
+        border-left: 4px solid #501214 !important;
+        padding: 0.75rem 1rem !important;
+        margin: 0.5rem 0 !important;
+        font-style: italic !important;
+        border-radius: 4px !important;
+        line-height: 1.5 !important;
     }
     .advisor-callout {
-        background-color: #fff9e6;
-        border: 1px solid #ffeeba;
-        padding: 1rem;
-        border-radius: 6px;
-        margin-top: 1rem;
+        background-color: #ffffff !important;
+        color: #111827 !important;
+        border: 2px solid #501214 !important;
+        padding: 1.2rem !important;
+        border-radius: 6px !important;
+        margin-top: 1rem !important;
+    }
+    .advisor-callout h4, 
+    .advisor-callout p, 
+    .advisor-callout a {
+        color: #111827 !important;
     }
     </style>
     """,
@@ -511,10 +534,10 @@ if st.session_state.results:
         st.markdown(
             """
             <div class="advisor-callout">
-                <h4>🤝 Human Career Advising Referral</h4>
-                <p>If you're unsure how to frame this experience, or if it involves complex circumstances, 
+                <h4 style="color:#501214 !important; margin-top:0;">🤝 Human Career Advising Referral</h4>
+                <p style="color:#1f2937 !important;">If you're unsure how to frame this experience, or if it involves complex circumstances, 
                 we recommend scheduling a 1-on-1 session with a Texas State Career Services advisor.</p>
-                <p><a href="https://www.careerservices.txst.edu/students-alumni/appointments.html" target="_blank">
+                <p style="margin-top:0.5rem;"><a href="https://www.careerservices.txst.edu/students-alumni/appointments.html" target="_blank" style="color:#501214 !important; font-weight:bold; text-decoration:underline;">
                 👉 Click here to schedule an appointment with a TXST Career Advisor</a></p>
             </div>
             """,
@@ -533,10 +556,10 @@ if st.session_state.results:
                     st.markdown(
                         f"""
                         <div class="competency-card">
-                            <h3 style="color:#501214; margin-top:0;">🌟 {comp.get('name')}</h3>
-                            <p><strong>Evidence:</strong></p>
-                            <div class="quote-box">"{comp.get('evidence')}"</div>
-                            <p style="margin-top:0.6rem;"><strong>Why it counts:</strong> {comp.get('justification')}</p>
+                            <h3 style="color:#501214 !important; margin-top:0;">🌟 {comp.get('name')}</h3>
+                            <p style="color:#1f2937 !important; margin-bottom:0.2rem;"><strong style="color:#111827 !important;">Evidence:</strong></p>
+                            <div class="quote-box" style="color:#111827 !important;">"{comp.get('evidence')}"</div>
+                            <p style="color:#1f2937 !important; margin-top:0.6rem;"><strong style="color:#111827 !important;">Why it counts:</strong> {comp.get('justification')}</p>
                         </div>
                         """,
                         unsafe_allow_html=True,
