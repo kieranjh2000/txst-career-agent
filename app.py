@@ -7,6 +7,7 @@ including Advocacy & Compassion) their experiences demonstrate, backed by exact
 evidence quotes and behavioral justifications.
 """
 
+import csv
 import datetime
 import json
 import os
@@ -47,6 +48,19 @@ MAX_API_RETRIES = 2
 LOGS_DIR = Path(__file__).parent / "logs"
 LOG_FILE_TXT = LOGS_DIR / "interactions.log"
 LOG_FILE_JSONL = LOGS_DIR / "interactions.jsonl"
+CSV_REPORTS_FILE = LOGS_DIR / "internship_connections_reports.csv"
+CSV_HEADERS = [
+    "Timestamp",
+    "NetID",
+    "Major",
+    "Semester",
+    "Organization",
+    "Role_Title",
+    "Competencies_Identified",
+    "Executive_Summary",
+    "Consent_Granted",
+]
+
 
 # ---------------------------------------------------------------------------
 # Page Styling & Title
@@ -261,6 +275,43 @@ def log_interaction(initial_text: str, final_text: str, results: dict, updates: 
         pass
 
 
+def save_internship_report(
+    net_id: str,
+    major: str,
+    semester: str,
+    organization: str,
+    role_title: str,
+    competencies_list: list,
+    executive_summary: str,
+) -> bool:
+    """Save an authorized student internship record to the Internship Connections CSV file."""
+    try:
+        LOGS_DIR.mkdir(exist_ok=True)
+        file_exists = CSV_REPORTS_FILE.exists()
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        competencies_str = "; ".join(competencies_list) if isinstance(competencies_list, list) else str(competencies_list)
+
+        with open(CSV_REPORTS_FILE, "a", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            if not file_exists:
+                writer.writerow(CSV_HEADERS)
+            writer.writerow([
+                timestamp,
+                net_id.strip(),
+                major.strip(),
+                semester.strip(),
+                organization.strip(),
+                role_title.strip(),
+                competencies_str,
+                executive_summary.strip(),
+                "TRUE",
+            ])
+        return True
+    except Exception:
+        return False
+
+
+
 # ---------------------------------------------------------------------------
 # Sidebar UI: Framework & Configuration
 # ---------------------------------------------------------------------------
@@ -298,6 +349,30 @@ with st.sidebar:
         "https://www.careerservices.txst.edu/students-alumni/appointments.html",
         use_container_width=True,
     )
+
+    st.markdown("---")
+    st.subheader("📊 Internship Connections Data")
+    st.caption("Career Services & Experiential Learning Registry")
+    if CSV_REPORTS_FILE.exists():
+        with open(CSV_REPORTS_FILE, "r", encoding="utf-8") as f:
+            csv_data = f.read()
+        st.download_button(
+            label="📥 Download Reports (CSV)",
+            data=csv_data,
+            file_name="txst_internship_connections_reports.csv",
+            mime="text/csv",
+            use_container_width=True,
+        )
+        with st.expander("👀 View Submitted Records"):
+            try:
+                import pandas as pd
+                df_reports = pd.read_csv(CSV_REPORTS_FILE)
+                st.dataframe(df_reports, use_container_width=True)
+            except Exception:
+                st.text(csv_data)
+    else:
+        st.caption("No student reports submitted yet.")
+
 
     # API Key Input Override (useful if not preconfigured on the server)
     st.markdown("---")
@@ -378,6 +453,8 @@ if "updates_history" not in st.session_state:
     st.session_state.updates_history = []
 if "show_diff" not in st.session_state:
     st.session_state.show_diff = False
+if "internship_reported" not in st.session_state:
+    st.session_state.internship_reported = False
 
 
 # Quick Sample Buttons
@@ -393,6 +470,7 @@ with col_sample1:
         st.session_state.results = None
         st.session_state.pending_questions = []
         st.session_state.show_diff = False
+        st.session_state.internship_reported = False
 with col_sample2:
     if st.button("💡 Example: Team Leadership"):
         st.session_state.experience_text = (
@@ -404,6 +482,7 @@ with col_sample2:
         st.session_state.results = None
         st.session_state.pending_questions = []
         st.session_state.show_diff = False
+        st.session_state.internship_reported = False
 with col_clear:
     if st.button("🔄 Reset"):
         st.session_state.experience_text = ""
@@ -412,6 +491,7 @@ with col_clear:
         st.session_state.previous_names = set()
         st.session_state.updates_history = []
         st.session_state.show_diff = False
+        st.session_state.internship_reported = False
         st.rerun()
 
 # Experience Input Form
@@ -579,10 +659,81 @@ if st.session_state.results:
                     )
 
     # ---------------------------------------------------------------------------
+    # Experiential Learning Reporting: TXST Internship Connections
+    # ---------------------------------------------------------------------------
+    st.markdown("---")
+    st.subheader("💼 Report Internship to TXST Career Services")
+    st.markdown(
+        "Did this experience take place as an **internship or co-op**? "
+        "Texas State Career Services (**Internship Connections**) tracks experiential learning data to help future Bobcats connect with top employers and support university placement benchmarks."
+    )
+
+    if st.session_state.get("internship_reported", False):
+        st.success("✅ **Thank you!** Your internship record has been submitted to the Texas State Internship Connections registry.")
+    else:
+        share_permission = st.checkbox(
+            "🙋 Yes, I give permission to share this internship record with Texas State Career Services (Internship Connections).",
+            key="share_internship_consent",
+        )
+        if share_permission:
+            with st.form("internship_reporting_form"):
+                st.markdown("##### 📝 Student & Internship Details (Mandatory for Institutional Records)")
+                c_netid, c_major = st.columns(2)
+                with c_netid:
+                    net_id_input = st.text_input(
+                        "Texas State NetID *",
+                        placeholder="e.g., abc1234",
+                        help="Required by Career Services to link with your Handshake / university profile",
+                    )
+                with c_major:
+                    major_input = st.text_input(
+                        "Academic Major / Degree Program *",
+                        placeholder="e.g., MS Data Analytics, Computer Science, Finance",
+                    )
+
+                c_term, c_org, c_role = st.columns([1.2, 1.4, 1.4])
+                with c_term:
+                    semester_input = st.selectbox(
+                        "Semester Completed *",
+                        ["Summer 2026", "Spring 2026", "Fall 2025", "Summer 2025", "Spring 2025", "Other / Prior"],
+                    )
+                with c_org:
+                    org_input = st.text_input("Organization / Employer *", placeholder="e.g., Dell Technologies, H-E-B, Frost Bank")
+                with c_role:
+                    role_input = st.text_input("Role / Job Title *", placeholder="e.g., Data Analytics Intern")
+
+                st.caption(
+                    f"Validated Competencies to be recorded: **{', '.join(current_names) if current_names else 'General Experiential Learning'}**"
+                )
+                
+                submit_report = st.form_submit_button("📤 Submit to TXST Internship Connections", type="primary")
+
+                if submit_report:
+                    if not net_id_input.strip() or not major_input.strip() or not org_input.strip() or not role_input.strip():
+                        st.error("❌ Please complete all required fields: NetID, Major, Organization, and Role Title.")
+                    else:
+                        success = save_internship_report(
+                            net_id=net_id_input,
+                            major=major_input,
+                            semester=semester_input,
+                            organization=org_input,
+                            role_title=role_input,
+                            competencies_list=list(current_names),
+                            executive_summary=summary,
+                        )
+                        if success:
+                            st.session_state.internship_reported = True
+                            st.toast("Internship reported to TXST Career Services!")
+                            st.rerun()
+                        else:
+                            st.error("Could not save the internship record. Please try again.")
+
+    # ---------------------------------------------------------------------------
     # Iterative Refinement & Human Correction (Rule 3)
     # ---------------------------------------------------------------------------
     st.markdown("---")
     with st.expander("✏️ Add or Clarify Something About This Experience", expanded=True):
+
         st.markdown(
             "If you want to add more details, clarify a project responsibility, or correct an interpretation:"
         )
