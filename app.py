@@ -40,7 +40,15 @@ if not ACCESS_CODE and hasattr(st, "secrets") and "APP_ACCESS_CODE" in st.secret
 if not ACCESS_CODE:
     ACCESS_CODE = "BOBCATS2026"  # Default test access code for class evaluation
 
+# Role-Based Access Control (RBAC): Staff PIN for FERPA-protected student data
+STAFF_ACCESS_CODE = os.environ.get("APP_STAFF_CODE")
+if not STAFF_ACCESS_CODE and hasattr(st, "secrets") and "APP_STAFF_CODE" in st.secrets:
+    STAFF_ACCESS_CODE = st.secrets["APP_STAFF_CODE"]
+if not STAFF_ACCESS_CODE:
+    STAFF_ACCESS_CODE = "TXSTSTAFF2026"  # Staff PIN for Career Services & Evaluators
+
 PRIMARY_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.5-flash-lite")
+
 
 FALLBACK_MODEL = os.environ.get("GEMINI_FALLBACK_MODEL", "gemini-3.6-flash")
 MAX_API_RETRIES = 2
@@ -312,6 +320,9 @@ def save_internship_report(
 
 
 
+if "staff_authenticated" not in st.session_state:
+    st.session_state.staff_authenticated = False
+
 # ---------------------------------------------------------------------------
 # Sidebar UI: Framework & Configuration
 # ---------------------------------------------------------------------------
@@ -350,28 +361,54 @@ with st.sidebar:
         use_container_width=True,
     )
 
+    # ---------------------------------------------------------------------------
+    # Staff Portal: Role-Based Access Control (FERPA Protection)
+    # ---------------------------------------------------------------------------
     st.markdown("---")
-    st.subheader("📊 Internship Connections Data")
-    st.caption("Career Services & Experiential Learning Registry")
-    if CSV_REPORTS_FILE.exists():
-        with open(CSV_REPORTS_FILE, "r", encoding="utf-8") as f:
-            csv_data = f.read()
-        st.download_button(
-            label="📥 Download Reports (CSV)",
-            data=csv_data,
-            file_name="txst_internship_connections_reports.csv",
-            mime="text/csv",
-            use_container_width=True,
-        )
-        with st.expander("👀 View Submitted Records"):
-            try:
-                import pandas as pd
-                df_reports = pd.read_csv(CSV_REPORTS_FILE)
-                st.dataframe(df_reports, use_container_width=True)
-            except Exception:
-                st.text(csv_data)
-    else:
-        st.caption("No student reports submitted yet.")
+    with st.expander("🔒 Career Services Staff Portal", expanded=st.session_state.staff_authenticated):
+        st.caption("🛡️ **FERPA Protected:** Access to student NetIDs and internship records requires a staff PIN.")
+        if not st.session_state.staff_authenticated:
+            staff_pin = st.text_input(
+                "Enter Staff PIN:",
+                type="password",
+                key="staff_pin_input",
+                placeholder="Staff PIN required",
+            )
+            if st.button("Unlock Staff Portal", type="secondary"):
+                if staff_pin.strip() == STAFF_ACCESS_CODE:
+                    st.session_state.staff_authenticated = True
+                    st.toast("Staff access granted!")
+                    st.rerun()
+                else:
+                    st.error("❌ Invalid Staff PIN.")
+        else:
+            st.success("✅ Authorized: Staff Access Active")
+            if st.button("Lock Staff Portal", type="secondary"):
+                st.session_state.staff_authenticated = False
+                st.rerun()
+
+            st.markdown("---")
+            st.subheader("📊 Submitted Internship Records")
+            if CSV_REPORTS_FILE.exists():
+                with open(CSV_REPORTS_FILE, "r", encoding="utf-8") as f:
+                    csv_data = f.read()
+                st.download_button(
+                    label="📥 Download All Records (CSV)",
+                    data=csv_data,
+                    file_name="txst_internship_connections_reports.csv",
+                    mime="text/csv",
+                    use_container_width=True,
+                )
+                with st.expander("👀 View Records Table"):
+                    try:
+                        import pandas as pd
+                        df_reports = pd.read_csv(CSV_REPORTS_FILE)
+                        st.dataframe(df_reports, use_container_width=True)
+                    except Exception:
+                        st.text(csv_data)
+            else:
+                st.caption("No student reports submitted yet.")
+
 
 
     # API Key Input Override (useful if not preconfigured on the server)
