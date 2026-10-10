@@ -11,6 +11,7 @@ import csv
 import datetime
 import json
 import os
+import re
 import time
 from pathlib import Path
 from typing import Optional
@@ -28,26 +29,26 @@ from prompts import build_completeness_prompt, build_mapping_prompt
 # ---------------------------------------------------------------------------
 load_dotenv()
 
-# Check environment variables first, then fallback to Streamlit Cloud secrets
-API_KEY = os.environ.get("GEMINI_API_KEY")
-if not API_KEY and hasattr(st, "secrets") and "GEMINI_API_KEY" in st.secrets:
-    API_KEY = st.secrets["GEMINI_API_KEY"]
 
-# Test Access Control Configuration
-ACCESS_CODE = os.environ.get("APP_ACCESS_CODE")
-if not ACCESS_CODE and hasattr(st, "secrets") and "APP_ACCESS_CODE" in st.secrets:
-    ACCESS_CODE = st.secrets["APP_ACCESS_CODE"]
-if not ACCESS_CODE:
-    ACCESS_CODE = "BOBCATS2026"  # Default test access code for class evaluation
+def get_secret(key: str, default: Optional[str] = None) -> Optional[str]:
+    """Safely fetch a key from environment variables or Streamlit secrets without crashing."""
+    val = os.environ.get(key)
+    if val:
+        return val
+    try:
+        if hasattr(st, "secrets") and key in st.secrets:
+            return st.secrets[key]
+    except Exception:
+        pass
+    return default
 
-# Role-Based Access Control (RBAC): Staff PIN for FERPA-protected student data
-STAFF_ACCESS_CODE = os.environ.get("APP_STAFF_CODE")
-if not STAFF_ACCESS_CODE and hasattr(st, "secrets") and "APP_STAFF_CODE" in st.secrets:
-    STAFF_ACCESS_CODE = st.secrets["APP_STAFF_CODE"]
-if not STAFF_ACCESS_CODE:
-    STAFF_ACCESS_CODE = "TXSTSTAFF2026"  # Staff PIN for Career Services & Evaluators
+
+API_KEY = get_secret("GEMINI_API_KEY")
+ACCESS_CODE = get_secret("APP_ACCESS_CODE", "BOBCATS2026")
+STAFF_ACCESS_CODE = get_secret("APP_STAFF_CODE", "TXSTSTAFF2026")
 
 PRIMARY_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.5-flash-lite")
+
 
 
 FALLBACK_MODEL = os.environ.get("GEMINI_FALLBACK_MODEL", "gemini-3.6-flash")
@@ -318,6 +319,36 @@ def save_internship_report(
     except Exception:
         return False
 
+
+def is_valid_txst_netid(net_id: str) -> tuple[bool, str]:
+    """Validate Texas State University NetID format.
+    
+    A valid TXST NetID consists of 2 to 4 letters (student initials),
+    optionally an underscore, followed by 1 to 6 digits (e.g., abc123, zz99, kjh12, k_j123).
+    """
+    cleaned = net_id.strip()
+    if not cleaned:
+        return False, "NetID cannot be blank."
+
+    # Detect if user accidentally entered a TXST Student ID (A-number, e.g., A01234567)
+    if re.match(r"^[aA]\d{8}$", cleaned):
+        return (
+            False,
+            "That looks like your Texas State Student ID (A-Number, e.g. A01234567). "
+            "Please enter your Texas State NetID instead (e.g. abc123 or kjh12).",
+        )
+
+    # Standard Texas State NetID pattern: 2 to 4 letters, optional underscore, 1 to 6 digits
+    pattern = r"^[a-zA-Z]{2,4}_?\d{1,6}$"
+    if not re.match(pattern, cleaned):
+        return (
+            False,
+            f"'{cleaned}' is not a valid Texas State NetID. "
+            "NetIDs start with 2 to 4 letters followed by numbers (such as abc123 or kjh12). "
+            "Please correct your NetID to proceed.",
+        )
+
+    return True, ""
 
 
 if "staff_authenticated" not in st.session_state:
@@ -719,8 +750,8 @@ if st.session_state.results:
                 with c_netid:
                     net_id_input = st.text_input(
                         "Texas State NetID *",
-                        placeholder="e.g., abc1234",
-                        help="Required by Career Services to link with your Handshake / university profile",
+                        placeholder="e.g., abc123 or kjh12",
+                        help="Format: 2–4 letters followed by numbers (e.g. abc123 or kjh12)",
                     )
                 with c_major:
                     major_input = st.text_input(
@@ -749,21 +780,25 @@ if st.session_state.results:
                     if not net_id_input.strip() or not major_input.strip() or not org_input.strip() or not role_input.strip():
                         st.error("❌ Please complete all required fields: NetID, Major, Organization, and Role Title.")
                     else:
-                        success = save_internship_report(
-                            net_id=net_id_input,
-                            major=major_input,
-                            semester=semester_input,
-                            organization=org_input,
-                            role_title=role_input,
-                            competencies_list=list(current_names),
-                            executive_summary=summary,
-                        )
-                        if success:
-                            st.session_state.internship_reported = True
-                            st.toast("Internship reported to TXST Career Services!")
-                            st.rerun()
+                        is_valid_netid, netid_error = is_valid_txst_netid(net_id_input)
+                        if not is_valid_netid:
+                            st.error(f"❌ {netid_error}")
                         else:
-                            st.error("Could not save the internship record. Please try again.")
+                            success = save_internship_report(
+                                net_id=net_id_input.strip().lower(),
+                                major=major_input,
+                                semester=semester_input,
+                                organization=org_input,
+                                role_title=role_input,
+                                competencies_list=list(current_names),
+                                executive_summary=summary,
+                            )
+                            if success:
+                                st.session_state.internship_reported = True
+                                st.toast("Internship reported to TXST Career Services!")
+                                st.rerun()
+                            else:
+                                st.error("Could not save the internship record. Please try again.")
 
     # ---------------------------------------------------------------------------
     # Iterative Refinement & Human Correction (Rule 3)
