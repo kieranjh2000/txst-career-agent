@@ -29,7 +29,14 @@ from google import genai
 from google.genai import errors as genai_errors
 
 from competencies import valid_competency_names
-from prompts import build_completeness_prompt, build_mapping_prompt
+from prompts import (
+    build_completeness_prompt,
+    build_completeness_user_content,
+    build_mapping_prompt,
+    build_mapping_user_content,
+    get_completeness_system_instruction,
+    get_mapping_system_instruction,
+)
 
 load_dotenv()  # pulls GEMINI_API_KEY (and optional GEMINI_MODEL) from .env
 
@@ -39,7 +46,7 @@ API_KEY = os.environ.get("GEMINI_API_KEY")
 # burning through a small daily allowance during testing.
 PRIMARY_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.5-flash-lite")
 FALLBACK_MODEL = os.environ.get("GEMINI_FALLBACK_MODEL", "gemini-3.6-flash")
-MAX_FOLLOW_UP_ROUNDS = 2  # avoid an endless question loop
+MAX_FOLLOW_UP_ROUNDS = 4  # avoid an endless question loop
 MAX_API_RETRIES = 2  # kept low -- retries on 503s may still burn quota
 
 if not API_KEY:
@@ -63,80 +70,65 @@ def _is_daily_quota_error(e: genai_errors.APIError) -> bool:
     return code == 429 and "per day" in message.replace("perday", "per day")
 
 
-def _try_model(model: str, prompt: str, json_mode: bool = True) -> Optional[str]:
-    """Attempt one model with a few retries. Returns text on success,
-    or None if the model is unavailable -- either a transient server-side
-    overload (worth retrying) or a daily quota that's been used up (not
-    worth retrying, so we bail out immediately to try the fallback)."""
-    config = {"response_mime_type": "application/json"} if json_mode else None
+def _try_model(
+    model: str,
+    prompt: str,
+    json_mode: bool = True,
+    system_instruction: Optional[str] = None,
+) -> Optional[str]:
+    """Attempt one model with a few retries."""
+    config = {"response_mime_type": "application/json"} if json_mode else {}
+    if system_instruction:
+        config["system_instruction"] = system_instruction
+    cfg = config if config else None
+
     for attempt in range(1, MAX_API_RETRIES + 1):
         try:
             response = client.models.generate_content(
                 model=model,
                 contents=prompt,
-                config=config,
+                config=cfg,
             )
             return response.text or ""
         except genai_errors.APIError as e:
             if _is_daily_quota_error(e):
-                print(
-                    f"\n[{model} has hit its free-tier daily request "
-                    f"limit -- that only resets at midnight Pacific time, "
-                    f"so retrying won't help. Trying a different model...]"
-                )
+                print(f"\n[{model} has hit its free-tier daily request limit -- trying fallback model...]")
                 return None
             if attempt < MAX_API_RETRIES:
                 wait_seconds = 3 * attempt
-                print(
-                    f"\n[{model} is busy -- retrying in {wait_seconds}s "
-                    f"({attempt}/{MAX_API_RETRIES})...]"
-                )
+                print(f"\n[{model} is busy -- retrying in {wait_seconds}s ({attempt}/{MAX_API_RETRIES})...]")
                 time.sleep(wait_seconds)
             else:
                 print(f"\n[{model} did not respond after {MAX_API_RETRIES} tries.]")
-        except Exception as e:
+        except Exception:
             if attempt < MAX_API_RETRIES:
                 wait_seconds = 3 * attempt
-                print(
-                    f"\n[Connection issue -- retrying in {wait_seconds}s "
-                    f"({attempt}/{MAX_API_RETRIES})...]"
-                )
                 time.sleep(wait_seconds)
             else:
                 print(f"\n[Unable to connect to {model}. Please check your internet connection.]")
     return None
 
 
-def call_gemini(prompt: str, json_mode: bool = True) -> str:
-    """Send a single-turn prompt to Gemini and return the raw text response.
-
-    Tries the primary model with retries first. If it's persistently
-    overloaded (503, "high demand") or has hit its free-tier daily quota
-    (429, RESOURCE_EXHAUSTED), automatically falls back to a second model
-    with a separate quota/capacity pool rather than giving up.
-    """
-    result = _try_model(PRIMARY_MODEL, prompt, json_mode=json_mode)
+def call_gemini(
+    prompt: str,
+    json_mode: bool = True,
+    system_instruction: Optional[str] = None,
+) -> str:
+    result = _try_model(PRIMARY_MODEL, prompt, json_mode=json_mode, system_instruction=system_instruction)
     if result is not None:
         return result
 
     if FALLBACK_MODEL and FALLBACK_MODEL != PRIMARY_MODEL:
         print(f"\nSwitching to backup model ({FALLBACK_MODEL})...\n")
-        result = _try_model(FALLBACK_MODEL, prompt, json_mode=json_mode)
+        result = _try_model(FALLBACK_MODEL, prompt, json_mode=json_mode, system_instruction=system_instruction)
         if result is not None:
             return result
 
-    print(
-        "\nBoth the primary and backup models are currently unavailable -- "
-        "either Google's servers are under heavy load, or both models' "
-        "free-tier daily quotas are used up for today (that resets at "
-        "midnight Pacific time). This is on Google's end, not a bug in "
-        "the app.\n"
-    )
+    print("\nBoth the primary and backup models are currently unavailable.\n")
     raise RuntimeError("Gemini API unavailable after retries and fallback")
 
 
 def parse_json_response(raw_text: str) -> dict:
-    """Strip any accidental markdown fences and parse JSON, with a clear error."""
     cleaned = raw_text.strip()
     if cleaned.startswith("```"):
         cleaned = cleaned.strip("`")
@@ -153,12 +145,18 @@ def parse_json_response(raw_text: str) -> dict:
 
 def check_completeness(experience_text: str) -> dict:
     try:
-        raw = call_gemini(build_completeness_prompt(experience_text))
+        raw = call_gemini(
+            prompt=build_completeness_user_content(experience_text),
+            system_instruction=get_completeness_system_instruction(),
+        )
         result = parse_json_response(raw)
-    except Exception as e:
-        # Fail safe: proceed directly to mapping rather than crashing
-        print("\n[Notice] Could not verify completeness online right now. Proceeding directly to analysis...\n")
-        return {"complete": True, "follow_up_questions": []}
+    except Exception:
+        try:
+            raw = call_gemini(prompt=build_completeness_prompt(experience_text))
+            result = parse_json_response(raw)
+        except Exception:
+            print("\n[Notice] Could not verify completeness online right now. Proceeding directly to analysis...\n")
+            return {"complete": True, "follow_up_questions": []}
     if not isinstance(result, dict) or "complete" not in result:
         return {"complete": True, "follow_up_questions": []}
     return result
@@ -166,19 +164,25 @@ def check_completeness(experience_text: str) -> dict:
 
 def map_competencies(experience_text: str) -> dict:
     try:
-        raw = call_gemini(build_mapping_prompt(experience_text))
+        raw = call_gemini(
+            prompt=build_mapping_user_content(experience_text),
+            system_instruction=get_mapping_system_instruction(),
+        )
         result = parse_json_response(raw)
-    except Exception as e:
-        print("\n[Notice] Could not complete competency mapping due to a temporary connection or server issue.")
-        return {
-            "competencies": [],
-            "summary": "Service was temporarily unavailable to complete the competency analysis."
-        }
+    except Exception:
+        try:
+            raw = call_gemini(prompt=build_mapping_prompt(experience_text))
+            result = parse_json_response(raw)
+        except Exception:
+            print("\n[Notice] Could not complete competency mapping due to a temporary connection or server issue.")
+            return {
+                "competencies": [],
+                "summary": "Service was temporarily unavailable to complete the competency analysis."
+            }
     if not isinstance(result, dict):
         result = {}
     result.setdefault("competencies", [])
     result.setdefault("summary", "")
-    # Drop any competency names the model may have hallucinated.
     valid_names = valid_competency_names()
     result["competencies"] = [
         c for c in result["competencies"] if isinstance(c, dict) and c.get("name") in valid_names
@@ -202,7 +206,10 @@ def display_results(result: dict, previous_names: Optional[set] = None) -> set:
         for c in competencies:
             print(f"* {c.get('name')}")
             print(f"    Evidence: {c.get('evidence')}")
-            print(f"    Why it counts: {c.get('justification')}\n")
+            print(f"    Why it counts: {c.get('justification')}")
+            if c.get("resume_bullet"):
+                print(f"    Resume Bullet: • {c.get('resume_bullet')}")
+            print()
     if summary:
         print(f"Summary: {summary}")
 
@@ -353,7 +360,7 @@ def run_completeness_loop(experience_text: str) -> str:
         print(
             "\nA couple quick questions to help pin this down "
             "(if you want to clarify or change something you already "
-            "said, just say so and I'll pause to update it):"
+            "said, just say so and I\'ll pause to update it):"
         )
         interrupted = False
         for q in check["follow_up_questions"]:
@@ -395,6 +402,8 @@ def edit_or_continue_loop(
                 experience_text += f"\n\nUpdate: {addition}"
                 updates.append(addition)
                 print(f"\nGot it -- factoring that in: \"{addition}\"")
+                # Run completeness loop on updated narrative so vague updates get probed
+                experience_text = run_completeness_loop(experience_text)
                 print("Re-analyzing with the updated information...\n")
                 result = map_competencies(experience_text)
                 previous_names = display_results(result, previous_names)

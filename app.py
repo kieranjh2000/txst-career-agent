@@ -22,7 +22,14 @@ from google.genai import errors as genai_errors
 import streamlit as st
 
 from competencies import valid_competency_names
-from prompts import build_completeness_prompt, build_mapping_prompt
+from prompts import (
+    build_completeness_prompt,
+    build_completeness_user_content,
+    build_mapping_prompt,
+    build_mapping_user_content,
+    get_completeness_system_instruction,
+    get_mapping_system_instruction,
+)
 
 # ---------------------------------------------------------------------------
 # Configuration & Credentials
@@ -45,7 +52,12 @@ def get_secret(key: str, default: Optional[str] = None) -> Optional[str]:
 
 API_KEY = get_secret("GEMINI_API_KEY")
 ACCESS_CODE = get_secret("APP_ACCESS_CODE", "BOBCATS2026")
+DEV_ACCESS_CODE = get_secret("APP_DEV_CODE", "DEV2026")
 STAFF_ACCESS_CODE = get_secret("APP_STAFF_CODE", "TXSTSTAFF2026")
+
+# Rate limiting & token drainage protection parameters
+MAX_INPUT_CHARS = 3500  # Character ceiling (protects against token drainage)
+SUBMISSION_COOLDOWN_SECONDS = 15  # Cooldown between API calls for standard users
 
 PRIMARY_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.5-flash-lite")
 
@@ -164,14 +176,24 @@ def is_daily_quota_error(e: genai_errors.APIError) -> bool:
     return code == 429 and "per day" in message.replace("perday", "per day")
 
 
-def try_model(client: genai.Client, model: str, prompt: str, json_mode: bool = True) -> Optional[str]:
-    config = {"response_mime_type": "application/json"} if json_mode else None
+def try_model(
+    client: genai.Client,
+    model: str,
+    prompt: str,
+    json_mode: bool = True,
+    system_instruction: Optional[str] = None,
+) -> Optional[str]:
+    config = {"response_mime_type": "application/json"} if json_mode else {}
+    if system_instruction:
+        config["system_instruction"] = system_instruction
+    cfg = config if config else None
+
     for attempt in range(1, MAX_API_RETRIES + 1):
         try:
             response = client.models.generate_content(
                 model=model,
                 contents=prompt,
-                config=config,
+                config=cfg,
             )
             return response.text or ""
         except genai_errors.APIError as e:
@@ -185,13 +207,18 @@ def try_model(client: genai.Client, model: str, prompt: str, json_mode: bool = T
     return None
 
 
-def call_gemini(client: genai.Client, prompt: str, json_mode: bool = True) -> str:
-    result = try_model(client, PRIMARY_MODEL, prompt, json_mode=json_mode)
+def call_gemini(
+    client: genai.Client,
+    prompt: str,
+    json_mode: bool = True,
+    system_instruction: Optional[str] = None,
+) -> str:
+    result = try_model(client, PRIMARY_MODEL, prompt, json_mode=json_mode, system_instruction=system_instruction)
     if result is not None:
         return result
 
     if FALLBACK_MODEL and FALLBACK_MODEL != PRIMARY_MODEL:
-        result = try_model(client, FALLBACK_MODEL, prompt, json_mode=json_mode)
+        result = try_model(client, FALLBACK_MODEL, prompt, json_mode=json_mode, system_instruction=system_instruction)
         if result is not None:
             return result
 
@@ -213,10 +240,18 @@ def parse_json_response(raw_text: str) -> dict:
 
 def check_completeness(client: genai.Client, experience_text: str) -> dict:
     try:
-        raw = call_gemini(client, build_completeness_prompt(experience_text))
+        raw = call_gemini(
+            client,
+            prompt=build_completeness_user_content(experience_text),
+            system_instruction=get_completeness_system_instruction(),
+        )
         result = parse_json_response(raw)
     except Exception:
-        return {"complete": True, "follow_up_questions": []}
+        try:
+            raw = call_gemini(client, build_completeness_prompt(experience_text))
+            result = parse_json_response(raw)
+        except Exception:
+            return {"complete": True, "follow_up_questions": []}
     if not isinstance(result, dict) or "complete" not in result:
         return {"complete": True, "follow_up_questions": []}
     return result
@@ -224,13 +259,21 @@ def check_completeness(client: genai.Client, experience_text: str) -> dict:
 
 def map_competencies(client: genai.Client, experience_text: str) -> dict:
     try:
-        raw = call_gemini(client, build_mapping_prompt(experience_text))
+        raw = call_gemini(
+            client,
+            prompt=build_mapping_user_content(experience_text),
+            system_instruction=get_mapping_system_instruction(),
+        )
         result = parse_json_response(raw)
     except Exception:
-        return {
-            "competencies": [],
-            "summary": "Service was temporarily unavailable to complete the competency analysis.",
-        }
+        try:
+            raw = call_gemini(client, build_mapping_prompt(experience_text))
+            result = parse_json_response(raw)
+        except Exception:
+            return {
+                "competencies": [],
+                "summary": "Service was temporarily unavailable to complete the competency analysis.",
+            }
     if not isinstance(result, dict):
         result = {}
     result.setdefault("competencies", [])
@@ -241,8 +284,6 @@ def map_competencies(client: genai.Client, experience_text: str) -> dict:
         c for c in result["competencies"] if isinstance(c, dict) and c.get("name") in valid_names
     ]
     return result
-
-
 def log_interaction(initial_text: str, final_text: str, results: dict, updates: Optional[list] = None) -> None:
     try:
         LOGS_DIR.mkdir(exist_ok=True)
@@ -458,6 +499,10 @@ with st.sidebar:
 # ---------------------------------------------------------------------------
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
+if "is_developer" not in st.session_state:
+    st.session_state.is_developer = False
+if "last_api_call_time" not in st.session_state:
+    st.session_state.last_api_call_time = 0.0
 
 if not st.session_state.authenticated:
     st.markdown('<div class="main-header">🔒 Restricted Test Environment</div>', unsafe_allow_html=True)
@@ -473,8 +518,15 @@ if not st.session_state.authenticated:
         submitted = st.form_submit_button("Unlock Agent", type="primary")
         
         if submitted:
-            if entered_code.strip() == ACCESS_CODE:
+            cleaned_code = entered_code.strip()
+            if cleaned_code == DEV_ACCESS_CODE:
                 st.session_state.authenticated = True
+                st.session_state.is_developer = True
+                st.success("🛠️ Developer access granted! Rate limits and cooldowns disabled.")
+                st.rerun()
+            elif cleaned_code == ACCESS_CODE:
+                st.session_state.authenticated = True
+                st.session_state.is_developer = False
                 st.success("Access granted!")
                 st.rerun()
             else:
@@ -488,9 +540,21 @@ if not st.session_state.authenticated:
 # Main UI Application
 # ---------------------------------------------------------------------------
 with st.sidebar:
-    st.caption("🔒 **Test Session Active**")
+    if st.session_state.get("is_developer", False):
+        st.markdown(
+            """
+            <div style="background-color:#FEF3C7; border-left:4px solid #D97706; padding:0.6rem; border-radius:4px; margin-bottom:0.8rem;">
+                <strong style="color:#92400E;">🛠️ Developer Mode Active</strong><br>
+                <small style="color:#B45309;">Rate limiting and cooldown timers bypassed for testing.</small>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+    else:
+        st.caption("🔒 **Test Session Active (Standard Rate Limits Apply)**")
     if st.button("Lock / Exit Session"):
         st.session_state.authenticated = False
+        st.session_state.is_developer = False
         st.rerun()
 
 st.markdown('<div class="main-header">TXST Career Readiness Discovery Agent</div>', unsafe_allow_html=True)
@@ -523,6 +587,8 @@ if "show_diff" not in st.session_state:
     st.session_state.show_diff = False
 if "internship_reported" not in st.session_state:
     st.session_state.internship_reported = False
+if "followup_round" not in st.session_state:
+    st.session_state.followup_round = 0
 
 
 # Quick Sample Buttons
@@ -560,7 +626,35 @@ with col_clear:
         st.session_state.updates_history = []
         st.session_state.show_diff = False
         st.session_state.internship_reported = False
+        st.session_state.followup_round = 0
         st.rerun()
+
+
+def check_rate_limits(user_text: str) -> tuple[bool, str]:
+    """Enforce character ceilings and cooldown timers to prevent token drainage."""
+    if st.session_state.get("is_developer", False):
+        return True, ""  # Developer bypass
+
+    # 1. Character Ceiling Check
+    if len(user_text.strip()) > MAX_INPUT_CHARS:
+        return (
+            False,
+            f"⚠️ Your description exceeds the maximum limit ({len(user_text.strip())} / {MAX_INPUT_CHARS} characters). "
+            f"Please keep your text under {MAX_INPUT_CHARS} characters to protect server capacity."
+        )
+
+    # 2. Cooldown Timer Check
+    now = time.time()
+    elapsed = now - st.session_state.get("last_api_call_time", 0.0)
+    if elapsed < SUBMISSION_COOLDOWN_SECONDS:
+        remaining = int(SUBMISSION_COOLDOWN_SECONDS - elapsed)
+        return (
+            False,
+            f"⏳ Cooldown active: Please wait {remaining} more second{'s' if remaining != 1 else ''} "
+            f"before submitting another request to prevent token exhaustion."
+        )
+
+    return True, ""
 
 # Experience Input Form
 user_input = st.text_area(
@@ -574,9 +668,15 @@ if st.button("🚀 Analyze Experience", type="primary"):
     if not user_input.strip():
         st.error("Please enter a description of your experience first.")
     else:
-        st.session_state.experience_text = user_input.strip()
-        with st.spinner("Checking completeness against Texas State Career evaluation rules..."):
-            completeness = check_completeness(client, st.session_state.experience_text)
+        can_proceed, limit_msg = check_rate_limits(user_input)
+        if not can_proceed:
+            st.warning(limit_msg)
+        else:
+            st.session_state.last_api_call_time = time.time()
+            st.session_state.experience_text = user_input.strip()
+            st.session_state.followup_round = 0
+            with st.spinner("Checking completeness against Texas State Career evaluation rules..."):
+                completeness = check_completeness(client, st.session_state.experience_text)
 
         if not completeness.get("complete", True) and completeness.get("follow_up_questions"):
             st.session_state.pending_questions = completeness["follow_up_questions"]
@@ -599,16 +699,17 @@ if st.button("🚀 Analyze Experience", type="primary"):
 # Follow-Up Probing Section (Rule 5: Completeness Threshold)
 # ---------------------------------------------------------------------------
 if st.session_state.pending_questions and st.session_state.results is None:
-    st.info("📋 **A couple quick questions to help pin down your evidence:**")
+    round_label = f" (Round {st.session_state.followup_round + 1})" if st.session_state.followup_round > 0 else ""
+    st.info(f"📋 **Follow-up Questions to Pin Down Strong Evidence{round_label}:**\n\nTake your time to share details. If you would rather proceed directly to analysis, click 'Skip to Analysis'.")
     followup_answers = []
-    with st.form("followup_form"):
+    with st.form(f"followup_form_{st.session_state.followup_round}"):
         for idx, q in enumerate(st.session_state.pending_questions):
-            ans = st.text_input(f"{idx + 1}. {q}", key=f"q_{idx}")
+            ans = st.text_input(f"{idx + 1}. {q}", key=f"q_{st.session_state.followup_round}_{idx}")
             followup_answers.append(ans)
         
         c1, c2 = st.columns([1, 1])
         with c1:
-            submit_followups = st.form_submit_button("Submit Answers & Analyze", type="primary")
+            submit_followups = st.form_submit_button("Submit Answers & Continue", type="primary")
         with c2:
             skip_followups = st.form_submit_button("Skip to Analysis")
 
@@ -616,10 +717,23 @@ if st.session_state.pending_questions and st.session_state.results is None:
         additional_info = " ".join([ans.strip() for ans in followup_answers if ans.strip()])
         if additional_info:
             full_narrative = f"{st.session_state.experience_text}\n\nAdditional details provided:\n{additional_info}"
-            st.session_state.updates_history.append(f"Follow-up details: {additional_info}")
+            st.session_state.experience_text = full_narrative
+            st.session_state.updates_history.append(f"Follow-up details (Round {st.session_state.followup_round + 1}): {additional_info}")
         else:
             full_narrative = st.session_state.experience_text
 
+        st.session_state.followup_round += 1
+        MAX_FOLLOWUP_ROUNDS = 3
+
+        # Patient exploration: If below round ceiling, re-evaluate if more specifics are needed
+        if st.session_state.followup_round < MAX_FOLLOWUP_ROUNDS and additional_info:
+            with st.spinner("Reviewing your additional details for evidence completeness..."):
+                completeness = check_completeness(client, full_narrative)
+            if not completeness.get("complete", True) and completeness.get("follow_up_questions"):
+                st.session_state.pending_questions = completeness["follow_up_questions"]
+                st.rerun()
+
+        # Narrative is substantive or round ceiling reached -> proceed to mapping
         with st.spinner("Mapping competencies with your additional details..."):
             results = map_competencies(client, full_narrative)
             st.session_state.results = results
@@ -633,7 +747,7 @@ if st.session_state.pending_questions and st.session_state.results is None:
             st.rerun()
 
     if skip_followups:
-        with st.spinner("Mapping competencies based on initial description..."):
+        with st.spinner("Mapping competencies based on current description..."):
             results = map_competencies(client, st.session_state.experience_text)
             st.session_state.results = results
             st.session_state.pending_questions = []
@@ -668,12 +782,7 @@ if st.session_state.results:
                 st.success(f"➕ **New Competency Added:** {', '.join(added)}")
             if removed:
                 st.warning(f"➖ **Competency Removed:** {', '.join(removed)}")
-        elif not competencies:
-            st.info(
-                "ℹ️ **Update Processed:** We added your clarification, but simply stating 'I had an internship' "
-                "still lacks specific projects, actions, tools, or measurable outcomes. "
-                "Try describing what tasks you personally worked on or what problem you solved!"
-            )
+
         else:
             st.info("ℹ️ **Update Processed:** No change in identified competencies.")
 
@@ -718,12 +827,26 @@ if st.session_state.results:
                         """,
                         unsafe_allow_html=True,
                     )
-                    # Ready-to-use resume bullet point
-                    bullet = f"• Demonstrated {comp.get('name')} by leveraging: {comp.get('evidence')} ({comp.get('justification')})"
+                    # Ready-to-use professional resume bullet point (Action-Verb format)
+                    raw_bullet = comp.get("resume_bullet", "").strip()
+                    if raw_bullet:
+                        if not raw_bullet.startswith("•") and not raw_bullet.startswith("-"):
+                            bullet_value = f"• {raw_bullet}"
+                        else:
+                            bullet_value = raw_bullet
+                    else:
+                        # Fallback cleaner formula if model omits the key: Action verb without 'You'
+                        clean_just = comp.get('justification', '').strip()
+                        if clean_just.lower().startswith("you "):
+                            clean_just = clean_just[4:]
+                            clean_just = clean_just[0].upper() + clean_just[1:] if clean_just else clean_just
+                        bullet_value = f"• {clean_just}" if clean_just else f"• Demonstrated {comp.get('name')} through: {comp.get('evidence')}"
+
                     st.text_input(
-                        "📋 Copyable Resume Bullet:",
-                        value=f"• {comp.get('justification')} as demonstrated when: \"{comp.get('evidence')}\"",
+                        "📋 Copyable Resume Bullet (Action-Verb Format):",
+                        value=bullet_value,
                         key=f"bullet_{i}",
+                        help="Formatted using standard Career Services guidelines (Action Verb + Context + Result). No 'You' or personal pronouns.",
                     )
 
     # ---------------------------------------------------------------------------
@@ -818,21 +941,40 @@ if st.session_state.results:
             if not update_text.strip():
                 st.warning("Please type what you would like to add or clarify before updating.")
             else:
-                st.session_state.previous_names = current_names
+                can_proceed, limit_msg = check_rate_limits(update_text)
+                if not can_proceed:
+                    st.warning(limit_msg)
+                else:
+                    st.session_state.last_api_call_time = time.time()
+                    st.session_state.previous_names = current_names
                 st.session_state.updates_history.append(update_text.strip())
                 updated_narrative = (
                     f"{st.session_state.experience_text}\n\n"
                     f"Student clarification/update:\n{update_text.strip()}"
                 )
-                with st.spinner("Re-evaluating with your updates..."):
-                    updated_results = map_competencies(client, updated_narrative)
-                    st.session_state.results = updated_results
-                    st.session_state.show_diff = True
-                    log_interaction(
-                        st.session_state.experience_text,
-                        updated_narrative,
-                        updated_results,
-                        st.session_state.updates_history,
-                    )
-                    st.toast("Analysis updated!")
+                st.session_state.experience_text = updated_narrative
+
+                # First run completeness check on the updated narrative.
+                # If the update introduces a new, vague experience, probe with follow-ups rather than failing.
+                with st.spinner("Checking completeness with your updates..."):
+                    completeness = check_completeness(client, updated_narrative)
+
+                if not completeness.get("complete", True) and completeness.get("follow_up_questions"):
+                    st.session_state.pending_questions = completeness["follow_up_questions"]
+                    st.session_state.results = None
+                    st.session_state.show_diff = False
+                    st.toast("Update received! A few quick questions to help unpack your experience.")
                     st.rerun()
+                else:
+                    with st.spinner("Re-evaluating with your updates..."):
+                        updated_results = map_competencies(client, updated_narrative)
+                        st.session_state.results = updated_results
+                        st.session_state.show_diff = True
+                        log_interaction(
+                            st.session_state.experience_text,
+                            updated_narrative,
+                            updated_results,
+                            st.session_state.updates_history,
+                        )
+                        st.toast("Analysis updated!")
+                        st.rerun()
