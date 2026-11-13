@@ -656,6 +656,59 @@ def check_rate_limits(user_text: str) -> tuple[bool, str]:
 
     return True, ""
 
+
+def generate_portfolio_markdown(summary: str, competencies: list, experience_text: str) -> str:
+    """Generate a clean, professional Texas State Career Readiness Portfolio export."""
+    now_str = datetime.datetime.now().strftime("%B %d, %Y")
+    lines = [
+        "=" * 70,
+        "TEXAS STATE UNIVERSITY - MCCOY COLLEGE OF BUSINESS",
+        "CAREER READINESS COMPETENCY PORTFOLIO",
+        f"Generated on: {now_str}",
+        "=" * 70,
+        "",
+        "EXECUTIVE SUMMARY:",
+        summary if summary else "Demonstrated career readiness competencies through real-world experience.",
+        "",
+        "-" * 70,
+        "IDENTIFIED CAREER READINESS COMPETENCIES & RESUME BULLETS:",
+        "-" * 70,
+        "",
+    ]
+
+    for i, c in enumerate(competencies, start=1):
+        name = c.get("name", "Competency")
+        evidence = c.get("evidence", "").strip()
+        justification = c.get("justification", "").strip()
+        bullet = c.get("resume_bullet", "").strip()
+        if not bullet:
+            clean_just = justification[4:] if justification.lower().startswith("you ") else justification
+            bullet = clean_just if clean_just else f"Demonstrated {name} through verifiable project experience."
+        if not bullet.startswith("•") and not bullet.startswith("-"):
+            bullet = f"• {bullet}"
+
+        lines.extend([
+            f"{i}. COMPETENCY: {name.upper()}",
+            f"   Evidence Quote : \"{evidence}\"",
+            f"   Why It Counts  : {justification}",
+            f"   Resume Bullet  : {bullet}",
+            "",
+        ])
+
+    lines.extend([
+        "-" * 70,
+        "ORIGINAL STUDENT EXPERIENCE DESCRIPTION:",
+        "-" * 70,
+        experience_text.strip(),
+        "",
+        "=" * 70,
+        "Texas State Career Services | LBJ Student Center, 5th Floor",
+        "Appointments & Handshake: https://www.careerservices.txst.edu/appointments.html",
+        "=" * 70,
+    ])
+
+    return "\n".join(lines)
+
 # Experience Input Form
 user_input = st.text_area(
     "Describe your experience (job, internship, class project, student org, leadership moment, or volunteer work):",
@@ -848,6 +901,23 @@ if st.session_state.results:
                         key=f"bullet_{i}",
                         help="Formatted using standard Career Services guidelines (Action Verb + Context + Result). No 'You' or personal pronouns.",
                     )
+
+        # One-Click Export: Official TXST Career Readiness Portfolio
+        st.markdown("")
+        col_dl1, col_dl2 = st.columns([1.5, 1])
+        with col_dl1:
+            portfolio_text = generate_portfolio_markdown(summary, competencies, st.session_state.experience_text)
+            st.download_button(
+                label="📥 Download Official TXST Career Portfolio (.txt / Markdown)",
+                data=portfolio_text,
+                file_name=f"TXST_Career_Portfolio_{datetime.datetime.now().strftime('%Y%m%d')}.txt",
+                mime="text/plain",
+                help="Download a clean, structured copy of your competencies, verified evidence quotes, and ready-to-use resume bullets to bring to interviews or advising sessions.",
+                type="secondary",
+                use_container_width=True,
+            )
+        with col_dl2:
+            st.caption("💡 *Take this portfolio to your 1-on-1 McCoy Career Center advising appointments or use it for job applications.*")
 
     # ---------------------------------------------------------------------------
     # Experiential Learning Reporting: TXST Internship Connections
