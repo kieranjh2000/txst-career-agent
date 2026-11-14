@@ -22,6 +22,7 @@ from google.genai import errors as genai_errors
 import streamlit as st
 
 from competencies import valid_competency_names
+from pdf_generator import generate_career_roadmap_pdf
 from prompts import (
     build_completeness_prompt,
     build_completeness_user_content,
@@ -902,22 +903,36 @@ if st.session_state.results:
                         help="Formatted using standard Career Services guidelines (Action Verb + Context + Result). No 'You' or personal pronouns.",
                     )
 
-        # One-Click Export: Official TXST Career Readiness Portfolio
+        # One-Click Export: PDF Career Readiness Audit & Student Growth Plan
         st.markdown("")
-        col_dl1, col_dl2 = st.columns([1.5, 1])
+        col_dl1, col_dl2 = st.columns([1.6, 1])
         with col_dl1:
+            try:
+                pdf_bytes = generate_career_roadmap_pdf(summary, competencies, st.session_state.experience_text)
+                st.download_button(
+                    label="📄 Download Career Readiness Audit & Growth Plan (.pdf)",
+                    data=pdf_bytes,
+                    file_name=f"TXST_Career_Roadmap_{datetime.datetime.now().strftime('%Y%m%d')}.pdf",
+                    mime="application/pdf",
+                    help="Download your personalized PDF report featuring earned competencies, verified quotes, action-verb resume bullets, and NACE-aligned next steps for unearned competencies.",
+                    type="primary",
+                    use_container_width=True,
+                )
+            except Exception as e:
+                st.error(f"Error generating PDF report: {e}")
+
             portfolio_text = generate_portfolio_markdown(summary, competencies, st.session_state.experience_text)
             st.download_button(
-                label="📥 Download Official TXST Career Portfolio (.txt / Markdown)",
+                label="📥 Download Plaintext Portfolio (.txt / Markdown)",
                 data=portfolio_text,
                 file_name=f"TXST_Career_Portfolio_{datetime.datetime.now().strftime('%Y%m%d')}.txt",
                 mime="text/plain",
-                help="Download a clean, structured copy of your competencies, verified evidence quotes, and ready-to-use resume bullets to bring to interviews or advising sessions.",
+                help="Download a clean, structured plaintext copy of your competencies and resume bullets.",
                 type="secondary",
                 use_container_width=True,
             )
         with col_dl2:
-            st.caption("💡 *Take this portfolio to your 1-on-1 McCoy Career Center advising appointments or use it for job applications.*")
+            st.caption("💡 **Career Educator Note:** *Your PDF includes a personalized gap analysis highlighting unearned competencies with actionable NACE-aligned steps to develop them at Texas State before graduation.*")
 
     # ---------------------------------------------------------------------------
     # Experiential Learning Reporting: TXST Internship Connections
