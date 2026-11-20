@@ -6,8 +6,9 @@ Produces a branded, professional Career Readiness Audit & Student Growth Plan PD
 - NACE Career Readiness Framework alignment.
 - Unofficial student self-reflection disclaimer.
 - Section 1: Earned competencies with quotes, justifications, and action-verb resume bullets.
-- Section 2: Competency gap analysis with actionable NACE-aligned next steps for unearned competencies.
-- Section 3: Human Career Advising referral and Handshake scheduling details.
+- Section 2: Competency gap analysis with concrete, step-by-step action plans for unearned competencies.
+- Section 3: Recommended Texas State & NACE student career resources directory.
+- Section 4: 1-on-1 Career Services appointment & experiential learning next steps.
 """
 
 import datetime
@@ -23,49 +24,107 @@ LIGHT_BG = (248, 249, 250)      # #F8F9FA
 BORDER_GRAY = (229, 231, 235)   # #E5E7EB
 WHITE = (255, 255, 255)
 
-# Actionable NACE guidance for each of the 8 competencies
-NACE_DEVELOPMENT_GUIDE = {
-    "Career & Self-Development": [
-        "Take a career or strengths assessment (e.g. CliftonStrengths) via TXST Career Services to clarify core talents.",
-        "Set 2-3 SMART personal development goals each semester and track milestone achievements.",
-        "Attend McCoy Career Center networking nights or connect with Bobcat alumni on LinkedIn for informational interviews."
-    ],
-    "Communication": [
-        "Deliver class presentations or join a campus organization like Toastmasters at TXST to refine public speaking.",
-        "Practice synthesizing complex ideas into concise executive summaries or written project briefs.",
-        "Exercise active listening in group projects: summarize peer perspectives before responding to ensure clarity."
-    ],
-    "Critical Thinking": [
-        "Tackle multi-variable analytical case studies in your coursework or participate in 3-Day Startup / business pitch events.",
-        "Practice evaluating competing solutions using objective decision matrices, cost-benefit models, or risk analyses.",
-        "Synthesize academic research or quantitative survey data to back up strategic project recommendations."
-    ],
-    "Advocacy & Compassion": [
-        "Engage in community outreach through university service initiatives like Bobcat Build or local community non-profits.",
-        "Participate in student organization dialogue forums to broaden awareness of diverse lived experiences.",
-        "Practice empathetic problem-solving and de-escalation techniques when mediating differing viewpoints in group work."
-    ],
-    "Leadership": [
-        "Volunteer to serve as project manager or milestone coordinator for an academic team project.",
-        "Seek an officer or committee chair position within a TXST student organization or Greek life chapter.",
-        "Participate in the TXST Leadership Institute workshops to cultivate coaching, delegation, and team empowerment skills."
-    ],
-    "Professionalism": [
-        "Attend McCoy Career Fairs dressed in professional business attire with an updated resume.",
-        "Establish disciplined personal accountability: meet deadlines early and proactively communicate project status updates.",
-        "Seek candid constructive feedback from professors or supervisors after major projects and implement suggestions."
-    ],
-    "Teamwork": [
-        "Collaborate deliberately with peers possessing complementary skillsets on multi-disciplinary team projects.",
-        "Establish shared team norms, transparent division of responsibilities, and collaborative documentation tools early.",
-        "Acknowledge and praise teammates' contributions regularly to build high psychological safety and trust."
-    ],
-    "Technology": [
-        "Pursue in-demand digital certifications (e.g., Excel Specialist, Google Analytics, SQL, Python, or AWS fundamentals).",
-        "Automate a repetitive academic or workplace workflow using spreadsheet macros, scripting, or no-code productivity tools.",
-        "Explore and ethically leverage modern cloud collaboration platforms and AI productivity tools in coursework."
-    ],
+# Concrete step-by-step action roadmaps and dedicated resources for each competency
+COMPETENCY_ACTION_ROADMAP = {
+    "Career & Self-Development": {
+        "steps": [
+            ("Step 1 - Self-Assessment", "Complete the CliftonStrengths assessment through TXST Career Services to identify your top signature themes and growth opportunities."),
+            ("Step 2 - Goal Setting & Mentorship", "Define 2-3 semesterly SMART career goals and schedule an informational interview with a TXST Bobcat alumnus on Bobcat Network."),
+            ("Step 3 - Resume & Handshake Profile", "Update your Handshake profile with target industries and document a 1-year Career Action Plan reviewed with a Career Advisor.")
+        ],
+        "primary_resource": "Handshake (txst.joinhandshake.com) & Bobcat Network (Alumni Mentoring)"
+    },
+    "Communication": {
+        "steps": [
+            ("Step 1 - Public Speaking", "Deliver project presentations in class or join Toastmasters at TXST to refine speech delivery, posture, and audience engagement."),
+            ("Step 2 - Written Executive Summaries", "Practice condensing multi-page academic papers into 1-page executive memos with clear headings and bullet points."),
+            ("Step 3 - Communication Review", "Visit the TXST Writing Center or Alkek Presentation Practice Rooms to record and critique your presentation timing and slides.")
+        ],
+        "primary_resource": "TXST Writing Center (ASB South 1st Floor) & Presentation Practice Rooms (Alkek Library)"
+    },
+    "Critical Thinking": {
+        "steps": [
+            ("Step 1 - Analytical Problem Framing", "Analyze complex multi-variable case studies in your coursework and formulate hypothesis-driven problem statements."),
+            ("Step 2 - Decision Matrices & Risk Analysis", "Evaluate competing solutions using objective decision criteria, cost-benefit comparisons, and risk assessment matrices."),
+            ("Step 3 - Pitch or Hackathon Participation", "Participate in 3-Day Startup (3DS), a hackathon, or a case competition through the TXST Center for Innovation & Entrepreneurship.")
+        ],
+        "primary_resource": "Center for Innovation & Entrepreneurship (3-Day Startup) & Alkek Library Research Data Services"
+    },
+    "Advocacy & Compassion": {
+        "steps": [
+            ("Step 1 - Community Service", "Register for Bobcat Build or volunteer with a local San Marcos non-profit through TXST Student Involvement."),
+            ("Step 2 - Cross-Cultural Engagement", "Attend campus cultural dialogue forums or join student organizations dedicated to advocacy and community empowerment."),
+            ("Step 3 - Empathetic Mediation", "Practice active listening and constructive conflict de-escalation when navigating differing perspectives in team projects.")
+        ],
+        "primary_resource": "Bobcat Build & TXST Student Involvement (LBJ Student Center 4th Floor)"
+    },
+    "Leadership": {
+        "steps": [
+            ("Step 1 - Project Ownership", "Volunteer to serve as project manager or milestone lead on a major academic group project, delegating tasks by strengths."),
+            ("Step 2 - Student Organization Leadership", "Seek an executive board or committee chair role within a registered TXST student organization via Bobcat Organization Hub."),
+            ("Step 3 - Leadership Certificate", "Participate in the TXST Leadership Institute workshops to develop coaching, ethical leadership, and conflict resolution skills.")
+        ],
+        "primary_resource": "TXST Leadership Institute & Bobcat Organization Hub (txstate.edu/involvement)"
+    },
+    "Professionalism": {
+        "steps": [
+            ("Step 1 - Workplace Accountability", "Establish reliable work habits: meet deadlines 24 hours early, maintain prompt attendance, and communicate delays proactively."),
+            ("Step 2 - Professional Attire & Networking", "Visit the TXST Career Closet for professional interview attire and attend the McCoy College of Business Career Fair."),
+            ("Step 3 - Constructive Feedback Review", "Request formal developmental feedback from professors or work supervisors after major milestones and implement refinements.")
+        ],
+        "primary_resource": "TXST Career Closet & McCoy College of Business Career Center (McCoy 115)"
+    },
+    "Teamwork": {
+        "steps": [
+            ("Step 1 - Team Charter & Norms", "Establish written team norms, shared expectations, and a collaborative workspace (e.g. Teams, Google Workspace) at project kickoff."),
+            ("Step 2 - Collaborative Problem-Solving", "Actively solicit input from quieter team members, synthesize diverse opinions, and focus on shared project milestones."),
+            ("Step 3 - Peer Feedback & Recognition", "Conduct a midpoint project check-in to recognize team member contributions and resolve workflow bottlenecks respectfully.")
+        ],
+        "primary_resource": "Alkek Collaborative Study Spaces & Student Organization Group Projects"
+    },
+    "Technology": {
+        "steps": [
+            ("Step 1 - Industry Certification", "Complete a free digital certification on LinkedIn Learning (e.g. Advanced Excel, SQL, Python, Tableau, or Google Analytics)."),
+            ("Step 2 - Workflow Automation", "Automate a repetitive manual task in an academic assignment, student org, or part-time job using scripts, formulas, or no-code tools."),
+            ("Step 3 - Technical Portfolio Artifact", "Create a public artifact (e.g. interactive dashboard, automated spreadsheet model, or GitHub repository) to demonstrate your skills.")
+        ],
+        "primary_resource": "LinkedIn Learning (Free access via TXST IT Assistance) & Alkek One Makerspace"
+    },
 }
+
+# Dedicated directory of key student career resources available at Texas State University
+TXST_CAREER_RESOURCES = [
+    {
+        "name": "Handshake (txst.joinhandshake.com)",
+        "category": "Career Services & Jobs",
+        "description": "Schedule 1-on-1 career advising sessions, attend university-wide & McCoy career fairs, and browse thousands of verified internships and full-time postings."
+    },
+    {
+        "name": "LinkedIn Learning (Free for TXST Students)",
+        "category": "Technical & Professional Certifications",
+        "description": "Unlimited access to 16,000+ expert-led video courses and certifications in programming, data analytics, project management, and business acumen via TXST NetID."
+    },
+    {
+        "name": "Bobcat Network (bobcatnetwork.txstate.edu)",
+        "category": "Alumni Mentorship & Networking",
+        "description": "Directly connect with Texas State alumni for informational interviews, career advice, job shadowing, and industry mentorship."
+    },
+    {
+        "name": "VMock Smart Resume Platform",
+        "category": "AI Resume Feedback",
+        "description": "Instant, 24/7 online resume evaluation that scores your bullet points against TXST Career Services benchmarks and employer applicant tracking systems."
+    },
+    {
+        "name": "Bobcat Organization Hub & Leadership Institute",
+        "category": "Experiential & Leadership Development",
+        "description": "Discover 400+ registered student organizations, apply for campus officer roles, participate in Bobcat Build, and complete leadership workshop series."
+    },
+    {
+        "name": "McCoy Career Center & Career Closet",
+        "category": "Advising & Professional Attire",
+        "description": "Located in McCoy Hall 115. Access free professional business suit rentals for interviews, mock interview prep, and targeted business career coaching."
+    },
+]
 
 
 def sanitize_text(text: str) -> str:
@@ -118,14 +177,13 @@ class CareerRoadmapPDF(FPDF):
     """Custom FPDF document styled with TXST branding and NACE framework aesthetics."""
 
     def header(self):
-        # We handle header manually on page 1 for a richer hero banner
         pass
 
     def footer(self):
         self.set_y(-15)
         self.set_font("helvetica", "I", 8)
         self.set_text_color(*MEDIUM_GRAY)
-        page_str = f"Page {self.page_no()} of {{nb}}"
+        page_str = f"Page {self.page_no()} of {{nb}}  |  Texas State Career Readiness Discovery Agent"
         self.cell(0, 8, sanitize_text(page_str), align="C")
 
 
@@ -263,7 +321,7 @@ def generate_career_roadmap_pdf(summary: str, competencies: list, experience_tex
 
         # Resume Bullet Box (Highlighted with Gold accent border)
         pdf.ln(1.5)
-        pdf.set_fill_color(254, 252, 243)  # very pale warm tint
+        pdf.set_fill_color(254, 252, 243)  # warm tint
         pdf.set_draw_color(*TXST_GOLD)
         pdf.set_line_width(0.4)
         pdf.set_font("helvetica", "B", 8.5)
@@ -276,14 +334,17 @@ def generate_career_roadmap_pdf(summary: str, competencies: list, experience_tex
         pdf.ln(4)
 
     # -------------------------------------------------------------------------
-    # SECTION 2: COMPETENCY GAP ANALYSIS & NEXT STEPS
+    # SECTION 2: COMPETENCY GAP ANALYSIS & ACTIONABLE STEPS
     # -------------------------------------------------------------------------
     all_competencies = sorted(list(valid_competency_names()))
     missing_competencies = [c for c in all_competencies if c not in earned_names]
 
+    if pdf.get_y() > 230:
+        pdf.add_page()
+
     pdf.set_font("helvetica", "B", 12)
     pdf.set_text_color(*TXST_MAROON)
-    pdf.cell(0, 7, sanitize_text(f"SECTION 2: COMPETENCY GAP ANALYSIS & GROWTH ROADMAP"), ln=True)
+    pdf.cell(0, 7, sanitize_text(f"SECTION 2: COMPETENCY GAP ANALYSIS & ACTIONABLE ROADMAP"), ln=True)
 
     curr_x, curr_y = pdf.get_x(), pdf.get_y()
     pdf.set_draw_color(*TXST_GOLD)
@@ -309,55 +370,117 @@ def generate_career_roadmap_pdf(summary: str, competencies: list, experience_tex
         pdf.set_font("helvetica", "", 9)
         pdf.set_text_color(*DARK_GRAY)
         intro_gap = (
-            f"Employers seek well-rounded candidates across the 8 NACE Career Competencies. "
+            f"Employers seek well-rounded candidates across all 8 NACE Career Competencies. "
             f"In this evaluation, {len(earned_names)} of 8 competencies were demonstrated. "
-            f"Below are career-educator recommended action steps at Texas State to develop the remaining {len(missing_competencies)}:"
+            f"Below is a concrete, step-by-step development roadmap for the remaining {len(missing_competencies)} "
+            f"competencies to help you systematically build and document them prior to graduation:"
         )
         pdf.multi_cell(page_width, 4.5, sanitize_text(intro_gap))
         pdf.ln(3)
 
         for gap_name in missing_competencies:
-            # Check for page break safety
-            if pdf.get_y() > 240:
+            # Check for page break safety before starting a block
+            if pdf.get_y() > 220:
                 pdf.add_page()
 
+            # Competency Title Bar
             pdf.set_fill_color(243, 244, 246)
             pdf.set_draw_color(*BORDER_GRAY)
             pdf.set_font("helvetica", "B", 9.5)
             pdf.set_text_color(*TXST_MAROON)
-            pdf.cell(page_width, 6, sanitize_text(f"  Target Competency: {gap_name}"), ln=True, fill=True, border=1)
+            pdf.cell(page_width, 6, sanitize_text(f"  Target Competency: {gap_name.upper()}"), ln=True, fill=True, border=1)
 
-            # Pull definition if available
+            # Definition
             comp_info = NACE_COMPETENCIES.get(gap_name, {})
             comp_def = comp_info.get("definition", "") if isinstance(comp_info, dict) else ""
             if comp_def:
                 pdf.set_font("helvetica", "I", 8)
                 pdf.set_text_color(*MEDIUM_GRAY)
-                pdf.multi_cell(page_width, 4, sanitize_text(f"Definition: {comp_def}"), border="LR")
+                pdf.multi_cell(page_width, 3.8, sanitize_text(f"Definition: {comp_def}"), border="LR")
 
-            # Guidance bullets
+            # Structured Action Steps
+            roadmap_info = COMPETENCY_ACTION_ROADMAP.get(gap_name, {
+                "steps": [
+                    ("Action Plan", "Engage in relevant coursework, student leadership roles, or experiential internships to build observable skills.")
+                ],
+                "primary_resource": "TXST Career Services & Handshake"
+            })
+
             pdf.set_font("helvetica", "", 8.5)
-            pdf.set_text_color(*DARK_GRAY)
-            guidance_list = NACE_DEVELOPMENT_GUIDE.get(gap_name, [
-                "Seek relevant coursework, student leadership roles, or experiential internships to build observable skills.",
-                "Consult with a Texas State Career Advisor to identify targeted co-curricular development avenues."
-            ])
-            for step in guidance_list:
-                pdf.multi_cell(page_width, 4.2, sanitize_text(f"   * {step}"), border="LR")
-            
+            for step_title, step_desc in roadmap_info.get("steps", []):
+                # Step header
+                pdf.set_font("helvetica", "B", 8)
+                pdf.set_text_color(*TXST_MAROON)
+                pdf.cell(page_width, 4.2, sanitize_text(f"    > {step_title}:"), ln=True, border="LR")
+                # Step body
+                pdf.set_font("helvetica", "", 8)
+                pdf.set_text_color(*DARK_GRAY)
+                pdf.multi_cell(page_width, 3.8, sanitize_text(f"      {step_desc}"), border="LR")
+
+            # Dedicated Primary Resource Tag
+            primary_res = roadmap_info.get("primary_resource", "")
+            if primary_res:
+                pdf.set_fill_color(254, 252, 243)  # subtle gold tint
+                pdf.set_font("helvetica", "B", 8)
+                pdf.set_text_color(*TXST_GOLD)
+                pdf.cell(page_width, 4.5, sanitize_text(f"    [Key Campus Resource]: {primary_res}"), ln=True, fill=True, border="LR")
+
             # Close bottom border of card
             pdf.cell(page_width, 1, "", ln=True, border="T")
-            pdf.ln(2.5)
+            pdf.ln(3)
 
     # -------------------------------------------------------------------------
-    # SECTION 3: HUMAN ADVISING & NEXT STEPS
+    # SECTION 3: RECOMMENDED STUDENT CAREER RESOURCES DIRECTORY
     # -------------------------------------------------------------------------
-    if pdf.get_y() > 240:
+    if pdf.get_y() > 200:
         pdf.add_page()
 
+    pdf.set_font("helvetica", "B", 12)
+    pdf.set_text_color(*TXST_MAROON)
+    pdf.cell(0, 7, sanitize_text("SECTION 3: RECOMMENDED TEXAS STATE CAREER RESOURCES"), ln=True)
+
+    curr_x, curr_y = pdf.get_x(), pdf.get_y()
+    pdf.set_draw_color(*TXST_GOLD)
+    pdf.line(curr_x, curr_y, curr_x + page_width, curr_y)
+    pdf.ln(2.5)
+
+    pdf.set_font("helvetica", "", 8.8)
+    pdf.set_text_color(*DARK_GRAY)
+    res_intro = (
+        "Take advantage of these high-impact career resources and platforms available free to Texas State students "
+        "to accelerate your competency development and prepare for recruitment:"
+    )
+    pdf.multi_cell(page_width, 4.2, sanitize_text(res_intro))
+    pdf.ln(2.5)
+
+    for res in TXST_CAREER_RESOURCES:
+        if pdf.get_y() > 250:
+            pdf.add_page()
+
+        pdf.set_fill_color(*LIGHT_BG)
+        pdf.set_draw_color(*BORDER_GRAY)
+        
+        # Resource Name and Category
+        pdf.set_font("helvetica", "B", 8.5)
+        pdf.set_text_color(*TXST_MAROON)
+        pdf.cell(page_width, 4.5, sanitize_text(f"  * {res['name']}  [{res['category']}]"), ln=True, fill=True, border="TLR")
+        
+        # Resource Description
+        pdf.set_font("helvetica", "", 8)
+        pdf.set_text_color(*DARK_GRAY)
+        pdf.multi_cell(page_width, 3.8, sanitize_text(f"    {res['description']}"), border="BLR", fill=True)
+        pdf.ln(1.5)
+
+    # -------------------------------------------------------------------------
+    # SECTION 4: HUMAN ADVISING & NEXT STEPS
+    # -------------------------------------------------------------------------
+    if pdf.get_y() > 230:
+        pdf.add_page()
+
+    pdf.ln(2)
     pdf.set_font("helvetica", "B", 11)
     pdf.set_text_color(*TXST_MAROON)
-    pdf.cell(0, 6, sanitize_text("NEXT STEPS: 1-ON-1 CAREER SERVICES APPOINTMENT"), ln=True)
+    pdf.cell(0, 6, sanitize_text("SECTION 4: 1-ON-1 CAREER SERVICES APPOINTMENT"), ln=True)
 
     curr_x, curr_y = pdf.get_x(), pdf.get_y()
     pdf.set_draw_color(*TXST_GOLD)
