@@ -169,7 +169,6 @@ def sanitize_text(text: str) -> str:
     for orig, rep in replacements.items():
         text = text.replace(orig, rep)
     
-    # Strip any remaining characters outside latin-1
     return text.encode("latin-1", "replace").decode("latin-1")
 
 
@@ -184,7 +183,7 @@ class CareerRoadmapPDF(FPDF):
         self.set_font("helvetica", "I", 8)
         self.set_text_color(*MEDIUM_GRAY)
         page_str = f"Page {self.page_no()} of {{nb}}  |  Texas State Career Readiness Discovery Agent"
-        self.cell(0, 8, sanitize_text(page_str), align="C")
+        self.cell(0, 8, sanitize_text(page_str), align="C", new_x="LMARGIN", new_y="NEXT")
 
 
 def generate_career_roadmap_pdf(summary: str, competencies: list, experience_text: str) -> bytes:
@@ -193,34 +192,34 @@ def generate_career_roadmap_pdf(summary: str, competencies: list, experience_tex
     Returns the binary PDF bytes ready for st.download_button.
     """
     pdf = CareerRoadmapPDF(orientation="P", unit="mm", format="A4")
-    pdf.set_auto_page_break(auto=True, margin=18)
+    pdf.set_auto_page_break(auto=True, margin=10)
     pdf.alias_nb_pages()
     pdf.add_page()
 
-    page_width = 210 - (pdf.l_margin + pdf.r_margin)  # usable width (approx 190mm)
+    page_width = 210 - (pdf.l_margin + pdf.r_margin)  # usable width (190mm)
 
     # -------------------------------------------------------------------------
     # HERO HEADER BANNER (TXST Maroon with Gold Accent)
     # -------------------------------------------------------------------------
     pdf.set_fill_color(*TXST_MAROON)
-    pdf.rect(0, 0, 210, 36, style="F")
+    pdf.rect(0, 0, 210, 32, style="F")
 
     # Gold accent stripe
     pdf.set_fill_color(*TXST_GOLD)
-    pdf.rect(0, 36, 210, 2.5, style="F")
+    pdf.rect(0, 32, 210, 2, style="F")
 
     # Banner Title
-    pdf.set_xy(10, 8)
-    pdf.set_font("helvetica", "B", 15)
+    pdf.set_xy(10, 6.5)
+    pdf.set_font("helvetica", "B", 14)
     pdf.set_text_color(*WHITE)
-    pdf.cell(0, 8, sanitize_text("CAREER READINESS AUDIT & STUDENT GROWTH PLAN"), ln=True, align="C")
+    pdf.cell(page_width, 7.5, sanitize_text("CAREER READINESS AUDIT & STUDENT GROWTH PLAN"), align="C", new_x="LMARGIN", new_y="NEXT")
 
     # Banner Subtitle
-    pdf.set_font("helvetica", "", 10)
+    pdf.set_font("helvetica", "", 9.5)
     pdf.set_text_color(240, 230, 210)  # Pale gold tint
-    pdf.cell(0, 6, sanitize_text("In Alignment with NACE Career Competencies | Texas State University"), ln=True, align="C")
+    pdf.cell(page_width, 5.5, sanitize_text("In Alignment with NACE Career Competencies | Texas State University"), align="C", new_x="LMARGIN", new_y="NEXT")
 
-    pdf.set_y(43)
+    pdf.set_y(37)
 
     # -------------------------------------------------------------------------
     # UNOFFICIAL DISCLAIMER CALLOUT
@@ -237,19 +236,19 @@ def generate_career_roadmap_pdf(summary: str, competencies: list, experience_tex
         "Competency Framework. It is intended for student self-development, interview preparation, and "
         "career advising discussions. It is not an official Texas State University transcript or certification."
     )
-    pdf.set_font("helvetica", "I", 8)
+    pdf.set_font("helvetica", "I", 7.8)
     pdf.set_text_color(*MEDIUM_GRAY)
-    pdf.multi_cell(page_width, 4.2, sanitize_text(disclaimer_text), border=1, fill=True, align="L")
-    pdf.ln(4)
+    pdf.multi_cell(page_width, 3.8, sanitize_text(disclaimer_text), border=1, fill=True, align="L", new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(3)
 
     # -------------------------------------------------------------------------
     # EXECUTIVE SUMMARY SECTION
     # -------------------------------------------------------------------------
-    pdf.set_font("helvetica", "B", 12)
+    pdf.set_font("helvetica", "B", 11)
     pdf.set_text_color(*TXST_MAROON)
-    pdf.cell(0, 7, sanitize_text("EXECUTIVE SUMMARY"), ln=True)
+    pdf.cell(page_width, 6, sanitize_text("EXECUTIVE SUMMARY"), new_x="LMARGIN", new_y="NEXT")
     
-    # Thin gold underline
+    # Gold underline
     curr_x, curr_y = pdf.get_x(), pdf.get_y()
     pdf.set_draw_color(*TXST_GOLD)
     pdf.set_line_width(0.6)
@@ -257,17 +256,17 @@ def generate_career_roadmap_pdf(summary: str, competencies: list, experience_tex
     pdf.ln(2)
 
     summary_content = summary if summary else "Demonstrated career readiness competencies through verifiable experiential learning."
-    pdf.set_font("helvetica", "", 9.5)
+    pdf.set_font("helvetica", "", 9)
     pdf.set_text_color(*DARK_GRAY)
-    pdf.multi_cell(page_width, 5, sanitize_text(summary_content))
-    pdf.ln(5)
+    pdf.multi_cell(page_width, 4.5, sanitize_text(summary_content), new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(4)
 
     # -------------------------------------------------------------------------
     # SECTION 1: DEMONSTRATED COMPETENCIES (EARNED)
     # -------------------------------------------------------------------------
-    pdf.set_font("helvetica", "B", 12)
+    pdf.set_font("helvetica", "B", 11)
     pdf.set_text_color(*TXST_MAROON)
-    pdf.cell(0, 7, sanitize_text(f"SECTION 1: DEMONSTRATED COMPETENCIES ({len(competencies)} Identified)"), ln=True)
+    pdf.cell(page_width, 6, sanitize_text(f"SECTION 1: DEMONSTRATED COMPETENCIES ({len(competencies)} Identified)"), new_x="LMARGIN", new_y="NEXT")
 
     curr_x, curr_y = pdf.get_x(), pdf.get_y()
     pdf.set_draw_color(*TXST_GOLD)
@@ -293,45 +292,35 @@ def generate_career_roadmap_pdf(summary: str, competencies: list, experience_tex
         # Competency Header Pill
         pdf.set_fill_color(*TXST_MAROON)
         pdf.set_text_color(*WHITE)
-        pdf.set_font("helvetica", "B", 10)
-        pdf.cell(page_width, 6.5, sanitize_text(f"  {i}. {name.upper()}"), ln=True, fill=True)
-
-        # Content Box
-        pdf.set_fill_color(*LIGHT_BG)
-        pdf.set_draw_color(*BORDER_GRAY)
-        pdf.set_font("helvetica", "B", 8.5)
-        pdf.set_text_color(*DARK_GRAY)
+        pdf.set_font("helvetica", "B", 9.5)
+        pdf.cell(page_width, 6, sanitize_text(f"  {i}. {name.upper()}"), fill=True, new_x="LMARGIN", new_y="NEXT")
 
         # Verified Evidence Quote
-        pdf.ln(1.5)
-        pdf.set_font("helvetica", "B", 8.5)
-        pdf.cell(32, 5, sanitize_text("Verified Evidence: "), ln=False)
-        pdf.set_font("helvetica", "I", 8.5)
-        pdf.set_text_color(55, 65, 81)
-        pdf.multi_cell(page_width - 32, 4.5, sanitize_text(f'"{evidence}"'))
+        pdf.set_fill_color(*LIGHT_BG)
+        pdf.set_draw_color(*BORDER_GRAY)
+        pdf.set_font("helvetica", "B", 8)
+        pdf.set_text_color(*DARK_GRAY)
+        evidence_text = f'  Verified Evidence: "{evidence}"'
+        pdf.multi_cell(page_width, 4, sanitize_text(evidence_text), border="LR", fill=True, new_x="LMARGIN", new_y="NEXT")
 
         # Institutional Justification
-        pdf.ln(1)
-        pdf.set_font("helvetica", "B", 8.5)
-        pdf.set_text_color(*DARK_GRAY)
-        pdf.cell(32, 5, sanitize_text("Why It Counts: "), ln=False)
-        pdf.set_font("helvetica", "", 8.5)
+        pdf.set_font("helvetica", "", 8)
         pdf.set_text_color(55, 65, 81)
-        pdf.multi_cell(page_width - 32, 4.5, sanitize_text(justification))
+        just_text = f"  Why It Counts: {justification}"
+        pdf.multi_cell(page_width, 4, sanitize_text(just_text), border="LR", fill=True, new_x="LMARGIN", new_y="NEXT")
 
         # Resume Bullet Box (Highlighted with Gold accent border)
-        pdf.ln(1.5)
         pdf.set_fill_color(254, 252, 243)  # warm tint
         pdf.set_draw_color(*TXST_GOLD)
         pdf.set_line_width(0.4)
-        pdf.set_font("helvetica", "B", 8.5)
+        pdf.set_font("helvetica", "B", 8)
         pdf.set_text_color(*TXST_MAROON)
-        pdf.cell(page_width, 5, sanitize_text("  Action-Verb Resume Bullet (Ready for CV / LinkedIn):"), ln=True, fill=True, border="TLR")
+        pdf.cell(page_width, 4.5, sanitize_text("  Action-Verb Resume Bullet (Ready for CV / LinkedIn):"), fill=True, border="TLR", new_x="LMARGIN", new_y="NEXT")
         
-        pdf.set_font("helvetica", "", 8.5)
+        pdf.set_font("helvetica", "", 8)
         pdf.set_text_color(*DARK_GRAY)
-        pdf.multi_cell(page_width, 4.5, sanitize_text(f"  {bullet}"), border="BLR", fill=True)
-        pdf.ln(4)
+        pdf.multi_cell(page_width, 4, sanitize_text(f"  {bullet}"), border="BLR", fill=True, new_x="LMARGIN", new_y="NEXT")
+        pdf.ln(3)
 
     # -------------------------------------------------------------------------
     # SECTION 2: COMPETENCY GAP ANALYSIS & ACTIONABLE STEPS
@@ -339,35 +328,34 @@ def generate_career_roadmap_pdf(summary: str, competencies: list, experience_tex
     all_competencies = sorted(list(valid_competency_names()))
     missing_competencies = [c for c in all_competencies if c not in earned_names]
 
-    if pdf.get_y() > 230:
+    if pdf.will_page_break(25):
         pdf.add_page()
 
-    pdf.set_font("helvetica", "B", 12)
+    pdf.set_font("helvetica", "B", 11)
     pdf.set_text_color(*TXST_MAROON)
-    pdf.cell(0, 7, sanitize_text(f"SECTION 2: COMPETENCY GAP ANALYSIS & ACTIONABLE ROADMAP"), ln=True)
+    pdf.cell(page_width, 6, sanitize_text(f"SECTION 2: COMPETENCY GAP ANALYSIS & ACTIONABLE ROADMAP"), new_x="LMARGIN", new_y="NEXT")
 
     curr_x, curr_y = pdf.get_x(), pdf.get_y()
     pdf.set_draw_color(*TXST_GOLD)
     pdf.line(curr_x, curr_y, curr_x + page_width, curr_y)
-    pdf.ln(3)
+    pdf.ln(2.5)
 
     if not missing_competencies:
-        # Student earned all 8!
         pdf.set_fill_color(*LIGHT_BG)
-        pdf.set_font("helvetica", "B", 9.5)
+        pdf.set_font("helvetica", "B", 9)
         pdf.set_text_color(22, 101, 52)  # dark green
         pdf.multi_cell(
-            page_width, 5,
+            page_width, 4.5,
             sanitize_text(
                 "Outstanding Achievement! You have demonstrated observable evidence across all 8 Texas State / NACE "
                 "Career Readiness Competencies. Focus on refining your resume bullets and conducting mock behavioral "
                 "interviews with Career Services."
             ),
-            border=1, fill=True
+            border=1, fill=True, new_x="LMARGIN", new_y="NEXT"
         )
-        pdf.ln(4)
+        pdf.ln(3)
     else:
-        pdf.set_font("helvetica", "", 9)
+        pdf.set_font("helvetica", "", 8.5)
         pdf.set_text_color(*DARK_GRAY)
         intro_gap = (
             f"Employers seek well-rounded candidates across all 8 NACE Career Competencies. "
@@ -375,117 +363,110 @@ def generate_career_roadmap_pdf(summary: str, competencies: list, experience_tex
             f"Below is a concrete, step-by-step development roadmap for the remaining {len(missing_competencies)} "
             f"competencies to help you systematically build and document them prior to graduation:"
         )
-        pdf.multi_cell(page_width, 4.5, sanitize_text(intro_gap))
-        pdf.ln(3)
+        pdf.multi_cell(page_width, 4, sanitize_text(intro_gap), new_x="LMARGIN", new_y="NEXT")
+        pdf.ln(2.5)
 
         for gap_name in missing_competencies:
-            # Check for page break safety before starting a block
-            if pdf.get_y() > 220:
+            # Check for page break safety before starting a block (card height is ~35mm)
+            if pdf.will_page_break(35):
                 pdf.add_page()
 
             # Competency Title Bar
             pdf.set_fill_color(243, 244, 246)
             pdf.set_draw_color(*BORDER_GRAY)
-            pdf.set_font("helvetica", "B", 9.5)
+            pdf.set_line_width(0.3)
+            pdf.set_font("helvetica", "B", 9)
             pdf.set_text_color(*TXST_MAROON)
-            pdf.cell(page_width, 6, sanitize_text(f"  Target Competency: {gap_name.upper()}"), ln=True, fill=True, border=1)
+            pdf.cell(page_width, 5.5, sanitize_text(f"  TARGET COMPETENCY: {gap_name.upper()}"), fill=True, border="TLR", new_x="LMARGIN", new_y="NEXT")
 
             # Definition
             comp_info = NACE_COMPETENCIES.get(gap_name, {})
             comp_def = comp_info.get("definition", "") if isinstance(comp_info, dict) else ""
             if comp_def:
-                pdf.set_font("helvetica", "I", 8)
+                pdf.set_font("helvetica", "I", 7.5)
                 pdf.set_text_color(*MEDIUM_GRAY)
-                pdf.multi_cell(page_width, 3.8, sanitize_text(f"Definition: {comp_def}"), border="LR")
+                pdf.multi_cell(page_width, 3.5, sanitize_text(f"  Focus: {comp_def}"), border="LR", new_x="LMARGIN", new_y="NEXT")
 
             # Structured Action Steps
-            roadmap_info = COMPETENCY_ACTION_ROADMAP.get(gap_name, {
-                "steps": [
-                    ("Action Plan", "Engage in relevant coursework, student leadership roles, or experiential internships to build observable skills.")
-                ],
-                "primary_resource": "TXST Career Services & Handshake"
-            })
+            roadmap_info = COMPETENCY_ACTION_ROADMAP.get(gap_name, {})
+            steps = roadmap_info.get("steps", [])
 
-            pdf.set_font("helvetica", "", 8.5)
-            for step_title, step_desc in roadmap_info.get("steps", []):
-                # Step header
-                pdf.set_font("helvetica", "B", 8)
-                pdf.set_text_color(*TXST_MAROON)
-                pdf.cell(page_width, 4.2, sanitize_text(f"    > {step_title}:"), ln=True, border="LR")
-                # Step body
-                pdf.set_font("helvetica", "", 8)
+            for step_title, step_desc in steps:
+                pdf.set_font("helvetica", "", 7.8)
                 pdf.set_text_color(*DARK_GRAY)
-                pdf.multi_cell(page_width, 3.8, sanitize_text(f"      {step_desc}"), border="LR")
+                step_line = f"  * {step_title}: {step_desc}"
+                pdf.multi_cell(page_width, 3.6, sanitize_text(step_line), border="LR", new_x="LMARGIN", new_y="NEXT")
 
-            # Dedicated Primary Resource Tag
+            # Key Campus Resource Tag
             primary_res = roadmap_info.get("primary_resource", "")
             if primary_res:
-                pdf.set_fill_color(254, 252, 243)  # subtle gold tint
-                pdf.set_font("helvetica", "B", 8)
+                pdf.set_fill_color(254, 252, 243)  # subtle warm gold tint
+                pdf.set_font("helvetica", "B", 7.8)
                 pdf.set_text_color(*TXST_GOLD)
-                pdf.cell(page_width, 4.5, sanitize_text(f"    [Key Campus Resource]: {primary_res}"), ln=True, fill=True, border="LR")
+                res_line = f"  [Key Campus Resource]: {primary_res}"
+                pdf.multi_cell(page_width, 4, sanitize_text(res_line), fill=True, border="LR", new_x="LMARGIN", new_y="NEXT")
 
             # Close bottom border of card
-            pdf.cell(page_width, 1, "", ln=True, border="T")
-            pdf.ln(3)
+            pdf.cell(page_width, 1, "", border="T", new_x="LMARGIN", new_y="NEXT")
+            pdf.ln(2.5)
 
     # -------------------------------------------------------------------------
     # SECTION 3: RECOMMENDED STUDENT CAREER RESOURCES DIRECTORY
     # -------------------------------------------------------------------------
-    if pdf.get_y() > 200:
+    if pdf.will_page_break(40):
         pdf.add_page()
 
-    pdf.set_font("helvetica", "B", 12)
+    pdf.set_font("helvetica", "B", 11)
     pdf.set_text_color(*TXST_MAROON)
-    pdf.cell(0, 7, sanitize_text("SECTION 3: RECOMMENDED TEXAS STATE CAREER RESOURCES"), ln=True)
+    pdf.cell(page_width, 6, sanitize_text("SECTION 3: RECOMMENDED TEXAS STATE CAREER RESOURCES"), new_x="LMARGIN", new_y="NEXT")
 
     curr_x, curr_y = pdf.get_x(), pdf.get_y()
     pdf.set_draw_color(*TXST_GOLD)
     pdf.line(curr_x, curr_y, curr_x + page_width, curr_y)
     pdf.ln(2.5)
 
-    pdf.set_font("helvetica", "", 8.8)
+    pdf.set_font("helvetica", "", 8.5)
     pdf.set_text_color(*DARK_GRAY)
     res_intro = (
         "Take advantage of these high-impact career resources and platforms available free to Texas State students "
         "to accelerate your competency development and prepare for recruitment:"
     )
-    pdf.multi_cell(page_width, 4.2, sanitize_text(res_intro))
-    pdf.ln(2.5)
+    pdf.multi_cell(page_width, 4, sanitize_text(res_intro), new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(2)
 
     for res in TXST_CAREER_RESOURCES:
-        if pdf.get_y() > 250:
+        if pdf.will_page_break(12):
             pdf.add_page()
 
         pdf.set_fill_color(*LIGHT_BG)
         pdf.set_draw_color(*BORDER_GRAY)
         
         # Resource Name and Category
-        pdf.set_font("helvetica", "B", 8.5)
+        pdf.set_font("helvetica", "B", 7.8)
         pdf.set_text_color(*TXST_MAROON)
-        pdf.cell(page_width, 4.5, sanitize_text(f"  * {res['name']}  [{res['category']}]"), ln=True, fill=True, border="TLR")
+        pdf.cell(page_width, 4, sanitize_text(f"  * {res['name']}  [{res['category']}]"), fill=True, border="TLR", new_x="LMARGIN", new_y="NEXT")
         
         # Resource Description
-        pdf.set_font("helvetica", "", 8)
+        pdf.set_font("helvetica", "", 7.5)
         pdf.set_text_color(*DARK_GRAY)
-        pdf.multi_cell(page_width, 3.8, sanitize_text(f"    {res['description']}"), border="BLR", fill=True)
-        pdf.ln(1.5)
+        pdf.multi_cell(page_width, 3.4, sanitize_text(f"    {res['description']}"), border="BLR", fill=True, new_x="LMARGIN", new_y="NEXT")
+        pdf.ln(1)
 
     # -------------------------------------------------------------------------
     # SECTION 4: HUMAN ADVISING & NEXT STEPS
     # -------------------------------------------------------------------------
-    if pdf.get_y() > 230:
+    if pdf.will_page_break(24):
         pdf.add_page()
 
-    pdf.ln(2)
-    pdf.set_font("helvetica", "B", 11)
+    pdf.ln(1.5)
+    pdf.set_font("helvetica", "B", 10.5)
     pdf.set_text_color(*TXST_MAROON)
-    pdf.cell(0, 6, sanitize_text("SECTION 4: 1-ON-1 CAREER SERVICES APPOINTMENT"), ln=True)
+    pdf.cell(page_width, 5.5, sanitize_text("SECTION 4: 1-ON-1 CAREER SERVICES APPOINTMENT"), new_x="LMARGIN", new_y="NEXT")
 
     curr_x, curr_y = pdf.get_x(), pdf.get_y()
     pdf.set_draw_color(*TXST_GOLD)
     pdf.line(curr_x, curr_y, curr_x + page_width, curr_y)
-    pdf.ln(2)
+    pdf.ln(1.5)
 
     advising_text = (
         "Take this growth plan to your next advising session to review resume phrasing, explore experiential "
@@ -497,9 +478,9 @@ def generate_career_roadmap_pdf(summary: str, competencies: list, experience_tex
     )
     pdf.set_fill_color(*LIGHT_BG)
     pdf.set_draw_color(*BORDER_GRAY)
-    pdf.set_font("helvetica", "", 8.5)
+    pdf.set_font("helvetica", "", 7.8)
     pdf.set_text_color(*DARK_GRAY)
-    pdf.multi_cell(page_width, 4.2, sanitize_text(advising_text), border=1, fill=True)
+    pdf.multi_cell(page_width, 3.5, sanitize_text(advising_text), border=1, fill=True, new_x="LMARGIN", new_y="NEXT")
 
     # Return raw PDF bytes
     return bytes(pdf.output())
